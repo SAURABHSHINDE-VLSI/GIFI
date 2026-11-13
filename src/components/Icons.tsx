@@ -12,8 +12,8 @@ export type IconName =
   | "flip"
   | "chat"
   | "logout"
-  | "thumbs-up"
-  | "folded-hands";
+  | "pip";
+
 
 const shapes: Record<IconName, React.ReactNode> = {
   mic: (
@@ -74,17 +74,6 @@ const shapes: Record<IconName, React.ReactNode> = {
       <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
     </>
   ),
-  "thumbs-up": (
-    <>
-      <path d="M19 14.5V17a2 2 0 0 1-2 2H7a2 2 0 0 1-1.4-.6L3.5 15.8a1 1 0 0 1 .2-1.5l.2-.2a1 1 0 0 1 1.2-.2L10 14.2v-5.9a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v3.3l.7-.6a1 1 0 0 1 1.4.2l.6.6a1 1 0 0 1 .2 1.4L12 15.5a1 1 0 0 1-.8.8H5v2.5a1 1 0 0 0 1 1h1v2a5 5 0 0 0 9 0v-2h1a1 1 0 0 0 1-1v-2.5h2z" />
-    </>
-  ),
-  "folded-hands": (
-    <>
-      <path d="M12 2C8 2 5 4 5 8v1c0 1 .2 2 .5 3l2.4 3.2c1.1 1.5 2.9 2.4 4.7 2.4h4.6c1.8 0 3.6-.9 4.7-2.4L18.5 12c.3-1 .5-2 .5-3v-1c0-4-3-6-7-6z" />
-      <path d="M12 6c-2.2 0-4 1-5 2.5L3 13v1c0 1 .2 2 .5 3l2.4 3.2c1.1 1.5 2.9 2.4 4.7 2.4h4.6c1.8 0 3.6-.9 4.7-2.4L18.5 12v-1c-.3-1-.5-2-.5-3V8.5c-1-1.5-2.8-2.5-5-2.5z" />
-    </>
-  ),
   flip: (
     <>
       <path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.4-2.6L3 16" />
@@ -101,6 +90,12 @@ const shapes: Record<IconName, React.ReactNode> = {
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
       <path d="M16 17l5-5-5-5" />
       <path d="M21 12H9" />
+    </>
+  ),
+  pip: (
+    <>
+      <rect x="2" y="3" width="20" height="14" rx="2" />
+      <rect x="11" y="9" width="9" height="6" rx="1" fill="currentColor" stroke="none" />
     </>
   ),
 };

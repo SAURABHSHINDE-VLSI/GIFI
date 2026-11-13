@@ -12,8 +12,6 @@ type Options = {
   enabled: boolean;
   onPeace: () => void;
   onHeart: () => void;
-  onThumbsUp: () => void;
-  onFoldedHands: () => void;
   onStatus?: (status: GestureStatus) => void;
 };
 
@@ -80,27 +78,6 @@ function readGesture(hand?: Landmark[]) {
     return "heart";
   }
 
-  // 👍 thumbs-up: thumb up, index folded over middle, ring + pinky folded
-  if (
-    isExtended(hand, 4, 3) &&
-    !isExtended(hand, 8, 6) &&
-    !isExtended(hand, 12, 10) &&
-    !isExtended(hand, 16, 14) &&
-    !isExtended(hand, 20, 18)
-  ) {
-    return "thumbs_up";
-  }
-
-  // 🙏 folded hands / namaste: thumb + index tips close, middle folded, ring + pinky folded
-  if (
-    distance(hand[4], hand[8]) < 0.06 &&
-    !isExtended(hand, 12, 10) &&
-    !isExtended(hand, 16, 14) &&
-    !isExtended(hand, 20, 18)
-  ) {
-    return "folded_hands";
-  }
-
   return null;
 }
 
@@ -113,8 +90,6 @@ export function useGestureReactions({
   enabled,
   onPeace,
   onHeart,
-  onThumbsUp,
-  onFoldedHands,
   onStatus,
 }: Options) {
   useEffect(() => {
@@ -166,8 +141,6 @@ export function useGestureReactions({
       lastFired = Date.now();
       if (gesture === "peace") onPeace();
       if (gesture === "heart") onHeart();
-      if (gesture === "thumbs_up") onThumbsUp();
-      if (gesture === "folded_hands") onFoldedHands();
     };
 
     loadHandLandmarker()
@@ -186,5 +159,5 @@ export function useGestureReactions({
       if (timer) clearInterval(timer);
       video.srcObject = null;
     };
-  }, [track, enabled, onPeace, onHeart, onThumbsUp, onFoldedHands, onStatus]);
+  }, [track, enabled, onPeace, onHeart, onStatus]);
 }

@@ -21,6 +21,27 @@ export type ChatReceipt = {
   seenAt?: number;
 };
 
+export type PopupMessage = {
+  id: string;
+  from: string;
+  text: string;
+  at: number;
+};
+
+export type CallChatHandles = {
+  items: ChatItem[];
+  unread: number;
+  clearUnread: () => void;
+  sendText: (text: string) => void;
+  sendImage: (dataUrl: string) => void;
+  markSeenFor: (id: string) => void;
+  getReceipt: (id: string) => ChatReceipt | undefined;
+  toggleSound: () => void;
+  soundEnabled: boolean;
+  popups: PopupMessage[];
+  clearPopups: () => void;
+};
+
 const CHUNK_SIZE = 6000;
 const MAX_ITEMS = 120;
 
@@ -28,7 +49,8 @@ type Wire =
   | { t: "chat"; id: string; name: string; text: string; at: number }
   | { t: "img"; id: string; name: string; at: number; i: number; n: number; d: string }
   | { t: "receipt"; id: string; kind: "delivered" | "seen"; at: number }
-  | { t: "ping"; };
+  | { t: "ping"; }
+  | { t: "popup"; id: string; name: string; text: string; at: number }
 
 type Incoming = {
   name: string;
@@ -48,6 +70,7 @@ export function useCallChat(room: Room, selfName: string) {
   const [items, setItems] = useState<ChatItem[]>([]);
   const [unread, setUnread] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [popups, setPopups] = useState<PopupMessage[]>([]);
   const pending = useRef(new Map<string, Incoming>());
   const receipts = useRef(new Map<string, ChatReceipt>());
   const otherIdentity = useRef<string | null>(null);
@@ -81,6 +104,17 @@ export function useCallChat(room: Room, selfName: string) {
             : row,
         ),
       );
+    },
+    [],
+  );
+
+  const enqueuePopup = useCallback(
+    (item: PopupMessage) => {
+      setPopups((current) => {
+        const pruned = current.filter((p) => p.id !== item.id);
+        return [...pruned, item].slice(-3);
+      });
+      queueMicrotask(() => playIncomingSound());
     },
     [],
   );
@@ -153,6 +187,25 @@ export function useCallChat(room: Room, selfName: string) {
     [send],
   );
 
+  const playIncomingSound = useCallback(() => {
+    if (!soundEnabled) return;
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = 520;
+      gain.gain.value = 0.05;
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.16);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.16);
+    } catch {
+      // ignore when audio isn't available
+    }
+  }, [soundEnabled]);
+
   const playSentSound = useCallback(() => {
     if (!soundEnabled) return;
     try {
@@ -206,14 +259,18 @@ export function useCallChat(room: Room, selfName: string) {
       }
 
       if (message?.t === "chat" && typeof message.text === "string") {
-        push({
+        const incoming = {
           id: message.id,
           mine: false,
           name: message.name ?? "Her",
           at: message.at ?? Date.now(),
           text: message.text,
-        });
+        };
+        push(incoming);
         setUnread((value) => value + 1);
+        if (message.name !== selfName) {
+          enqueuePopup({ id: message.id, from: message.name ?? "Her", text: message.text, at: message.at ?? Date.now() });
+        }
         return;
       }
 
@@ -244,13 +301,17 @@ export function useCallChat(room: Room, selfName: string) {
           queueMicrotask(() => playSeenSound());
         }
       }
+
+      if (message?.t === "popup" && typeof message.text === "string" && message.name !== selfName) {
+        enqueuePopup({ id: message.id, from: message.name ?? "Her", text: message.text, at: message.at ?? Date.now() });
+      }
     };
 
     room.on(RoomEvent.DataReceived, onData);
     return () => {
       room.off(RoomEvent.DataReceived, onData);
     };
-  }, [room, push, updateReceipt]);
+  }, [room, push, updateReceipt, selfName, enqueuePopup]);
 
   useEffect(() => {
     if (!room) return;
@@ -281,6 +342,7 @@ export function useCallChat(room: Room, selfName: string) {
   );
 
   const toggleSound = useCallback(() => setSoundEnabled((v) => !v), []);
+  const clearPopups = useCallback(() => setPopups([]), []);
 
   return {
     items,
@@ -288,10 +350,11 @@ export function useCallChat(room: Room, selfName: string) {
     clearUnread,
     sendText,
     sendImage,
-    markDelivered,
     markSeenFor,
     getReceipt,
     toggleSound,
     soundEnabled,
+    popups,
+    clearPopups,
   };
 }
