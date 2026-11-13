@@ -15,9 +15,8 @@ type Options = {
   onStatus?: (status: GestureStatus) => void;
 };
 
-const WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3/wasm";
-const MODEL_URL =
-  "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+const WASM_URL = "/mediapipe/wasm";
+const MODEL_URL = "/mediapipe/hand_landmarker.task";
 
 const DETECT_INTERVAL = 200;
 const COOLDOWN = 3500;

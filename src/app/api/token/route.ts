@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { AccessToken } from "livekit-server-sdk";
 import { getDb } from "@/lib/d1";
 import { currentUser } from "@/lib/auth";
+import { checkSameOrigin } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const originCheck = checkSameOrigin(request);
+  if (originCheck) return originCheck;
   const apiKey = process.env.LIVEKIT_API_KEY;
   const apiSecret = process.env.LIVEKIT_API_SECRET;
   const url = process.env.LIVEKIT_URL;

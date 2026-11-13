@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/d1";
 import { clearedSessionCookie, readCookie, SESSION_COOKIE, sha256 } from "@/lib/auth";
+import { checkSameOrigin } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const originCheck = checkSameOrigin(request);
+  if (originCheck) return originCheck;
   const token = readCookie(request, SESSION_COOKIE);
 
   if (token) {

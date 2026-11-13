@@ -312,6 +312,10 @@ export function useCallChat(room: Room, selfName: string): CallChatHandles {
 
         let entry = pending.current.get(message.id);
         if (!entry) {
+          // Reject any transfer where the initial chunk does not begin with standard JPEG data URL prefix
+          if (message.i === 0 && !message.d.startsWith("data:image/jpeg;base64,")) {
+            return;
+          }
           if (message.d.length > MAX_IMAGE_BYTES) {
             return;
           }
@@ -345,16 +349,20 @@ export function useCallChat(room: Room, selfName: string): CallChatHandles {
         if (entry.parts.every((part) => part.length > 0)) {
           clearTimeout(entry.timeoutId);
           pending.current.delete(message.id);
-          push({
-            id: message.id,
-            mine: false,
-            name: entry.name,
-            at: entry.at,
-            image: entry.parts.join(""),
-            delivered: true,
-          });
-          setUnread((value) => value + 1);
-          markDelivered(message.id);
+          const fullImage = entry.parts.join("");
+          // Only accept incoming image data that starts with "data:image/jpeg;base64," and stays under size cap
+          if (fullImage.startsWith("data:image/jpeg;base64,") && fullImage.length <= MAX_IMAGE_BYTES) {
+            push({
+              id: message.id,
+              mine: false,
+              name: entry.name,
+              at: entry.at,
+              image: fullImage,
+              delivered: true,
+            });
+            setUnread((value) => value + 1);
+            markDelivered(message.id);
+          }
         }
       }
 

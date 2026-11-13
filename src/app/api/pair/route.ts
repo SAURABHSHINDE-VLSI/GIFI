@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/d1";
 import { currentUser, partnerFor } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkSameOrigin } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,6 +29,8 @@ function prettyCode(code: string) {
 }
 
 export async function POST(request: Request) {
+  const originCheck = checkSameOrigin(request);
+  if (originCheck) return originCheck;
   const db = await getDb();
   const user = await currentUser(db, request);
 

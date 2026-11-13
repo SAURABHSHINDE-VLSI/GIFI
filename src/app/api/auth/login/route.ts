@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/d1";
 import { createSession, DUMMY_PASSWORD_HASH, sessionCookie, verifyPassword } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkSameOrigin } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const originCheck = checkSameOrigin(request);
+  if (originCheck) return originCheck;
   let body: { username?: string; password?: string };
   try {
     body = await request.json();
