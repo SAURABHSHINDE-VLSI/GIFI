@@ -126,7 +126,7 @@ export default function AuthCard() {
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder={mode === "signup" ? "at least 6 characters" : "your password"}
+              placeholder={mode === "signup" ? "at least 8 characters" : "your password"}
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
             />
           </div>

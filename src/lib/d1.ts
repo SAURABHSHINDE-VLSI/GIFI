@@ -41,6 +41,11 @@ const SCHEMA = [
     created_at INTEGER NOT NULL,
     expires_at INTEGER NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS rate_limits (
+    key TEXT PRIMARY KEY,
+    window_start INTEGER NOT NULL,
+    count INTEGER NOT NULL
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_users_pair ON users (pair_id)`,
 ];
 

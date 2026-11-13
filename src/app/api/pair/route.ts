@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/d1";
 import { currentUser, partnerFor } from "@/lib/auth";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -83,6 +84,19 @@ export async function POST(request: Request) {
   if (body.action === "join") {
     if (user.pair_id) {
       return NextResponse.json({ message: "You are already connected." }, { status: 409 });
+    }
+
+    const ip = getClientIp(request);
+    const rateLimitKey = `pair_join:${user.id}:${ip}`;
+    const rateLimit = await checkRateLimit(db, rateLimitKey, 10, 15 * 60);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { message: "Too many pairing attempts. Please wait a few minutes and try again." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfterSeconds ?? 60) },
+        },
+      );
     }
 
     const code = normalizeCode(String(body.code ?? ""));
