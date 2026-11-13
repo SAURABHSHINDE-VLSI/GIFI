@@ -110,11 +110,12 @@ export function useCallChat(room: Room, selfName: string): CallChatHandles {
 
   // Clean up pending timeouts on unmount
   useEffect(() => {
+    const pendingMap = pending.current;
     return () => {
-      for (const entry of pending.current.values()) {
+      for (const entry of pendingMap.values()) {
         clearTimeout(entry.timeoutId);
       }
-      pending.current.clear();
+      pendingMap.clear();
     };
   }, []);
 

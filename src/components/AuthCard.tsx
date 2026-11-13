@@ -98,7 +98,7 @@ export default function AuthCard() {
                 id="displayName"
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
-                placeholder="what she calls you"
+                placeholder="your name"
                 maxLength={24}
                 autoComplete="nickname"
               />

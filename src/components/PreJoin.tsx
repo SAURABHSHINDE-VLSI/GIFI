@@ -51,10 +51,11 @@ export default function PreJoin({
         if (!cancelled) setCamError("Camera is blocked. You can still join with it off.");
       });
 
+    const videoEl = videoRef.current;
     return () => {
       cancelled = true;
       stream?.getTracks().forEach((track) => track.stop());
-      if (videoRef.current) videoRef.current.srcObject = null;
+      if (videoEl) videoEl.srcObject = null;
     };
   }, [camOn, facing]);
 

@@ -186,10 +186,10 @@ export default function Dashboard() {
               </div>
             )}
 
-            <div className="divider">or she sends you one</div>
+            <div className="divider">or your partner sends you one</div>
 
             <div className="field">
-              <label htmlFor="pair-code">her code</label>
+              <label htmlFor="pair-code">partner's code</label>
               <input
                 id="pair-code"
                 value={joinCode}
@@ -206,7 +206,7 @@ export default function Dashboard() {
               onClick={joinWithCode}
               disabled={busy || joinCode.trim().length < 5}
             >
-              Connect with her
+              Connect with your partner
             </button>
 
             <p className="hint">codes work once and expire in 7 days</p>

@@ -98,7 +98,7 @@ export default function CallPage() {
       >
         <CallUI
           selfName={me.user.displayName}
-          partnerName={me.partner?.displayName ?? "Her"}
+          partnerName={me.partner?.displayName ?? "Partner"}
           onLeave={leave}
         />
       </LiveKitRoom>
@@ -108,7 +108,7 @@ export default function CallPage() {
   return (
     <PreJoin
       displayName={me.user.displayName}
-      partnerName={me.partner?.displayName ?? "Her"}
+      partnerName={me.partner?.displayName ?? "Partner"}
       connecting={connecting}
       error={error}
       onJoin={join}

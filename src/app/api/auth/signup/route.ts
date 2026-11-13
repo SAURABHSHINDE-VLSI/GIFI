@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     );
   }
   if (!displayName) {
-    return NextResponse.json({ message: "Tell us what she calls you." }, { status: 400 });
+    return NextResponse.json({ message: "Tell us your name." }, { status: 400 });
   }
   if (password.length < 8) {
     return NextResponse.json(

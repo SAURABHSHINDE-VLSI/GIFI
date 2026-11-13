@@ -4,8 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "./Icons";
 import type { ChatItem, PopupMessage } from "@/lib/callChat";
 
-const QUICK_EMOJI = ["❤️", "😘", "😂", "🥺", "🔥", "👍", "😴", "🌙"];
-
 type Props = {
   visible: boolean;
   openPopups: PopupMessage[];
