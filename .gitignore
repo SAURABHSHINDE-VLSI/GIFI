@@ -18,3 +18,5 @@ dist/
 .deploy-test/
 sites.debug.manifest.json
 sites.test.manifest.json
+.wrangler/
+scratch/
