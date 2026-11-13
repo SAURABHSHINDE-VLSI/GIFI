@@ -6,8 +6,8 @@ import { Icon } from "./Icons";
 import { copyText, initialOf } from "@/lib/ui";
 
 type Me = {
-  user: { username: string; displayName: string; paired: boolean };
-  partner: { displayName: string } | null;
+  user: { username: string; displayName: string; paired: boolean; lastSeen: string };
+  partner: { displayName: string; lastSeen: string } | null;
 };
 
 export default function Dashboard() {
@@ -148,6 +148,7 @@ export default function Dashboard() {
               <div>
                 <div className="partner-name">{me.partner.displayName}</div>
                 <div className="partner-sub">connected with you</div>
+                <div className="partner-lastseen">{me.partner.lastSeen}</div>
               </div>
             </div>
 
@@ -211,6 +212,8 @@ export default function Dashboard() {
             <p className="hint">codes work once and expire in 7 days</p>
           </>
         )}
+
+        <p className="me-lastseen">{me?.user.lastSeen ?? ""}</p>
 
         <button className="signout" type="button" onClick={signOut}>
           sign out

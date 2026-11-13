@@ -2,35 +2,82 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "./Icons";
-import type { ChatItem } from "@/lib/callChat";
+import type { ChatItem, PopupMessage } from "@/lib/callChat";
 
 const QUICK_EMOJI = ["❤️", "😘", "😂", "🥺", "🔥", "👍", "😴", "🌙"];
 
 type Props = {
-  open: boolean;
+  visible: boolean;
+  openPopups: PopupMessage[];
   items: ChatItem[];
-  onClose: () => void;
+  partnerName?: string;
   onSend: (text: string) => void;
-  onScreenshot: () => void;
+  onScreenshot?: () => void;
   onMarkSeen?: (id: string) => void;
   getReceipt?: (id: string) => { delivered?: boolean; seen?: boolean; seenAt?: number } | undefined;
+  soundOn?: boolean;
+  onToggleSound?: () => void;
+  onOpen: () => void;
+  onClose?: () => void;
 };
 
 function timeOf(at: number) {
-  return new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const d = new Date(at);
+  const hour = d.getHours() % 12 || 12;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const ampm = d.getHours() < 12 ? "AM" : "PM";
+  return `${pad(hour)}:${pad(d.getMinutes())} ${ampm}`;
 }
 
+function popupLabel(at: number) {
+  const d = new Date(at);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function WhatsAppTicks({ delivered, seen }: { delivered?: boolean; seen?: boolean }) {
+  const strokeColor = seen ? "#53bdeb" : delivered ? "rgba(255, 255, 255, 0.75)" : "rgba(255, 255, 255, 0.45)";
+  return (
+    <span
+      className={`wa-ticks ${seen ? "seen" : delivered ? "delivered" : "sent"}`}
+      aria-label={seen ? "Seen" : delivered ? "Delivered" : "Sent"}
+    >
+      <svg width="15" height="10" viewBox="0 0 16 11" fill="none">
+        <path
+          d="M1 5.5L4.5 9L11 2"
+          stroke={strokeColor}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {(delivered || seen) && (
+          <path
+            d="M5 5.5L8.5 9L15 2"
+            stroke={strokeColor}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+      </svg>
+    </span>
+  );
+}
+
+const ROMANTIC_EMOJIS = ["❤️", "💖", "😘", "🥺", "✨", "🔥", "🌹", "🌙"];
+
 export default function CallChat({
-  open,
+  visible,
+  openPopups,
   items,
-  onClose,
+  partnerName,
   onSend,
-  onScreenshot,
   onMarkSeen,
-  getReceipt,
+  soundOn = true,
+  onOpen,
+  onClose,
 }: Props) {
   const [draft, setDraft] = useState("");
-  const [soundOn, setSoundOn] = useState(true);
   const list = useRef<HTMLDivElement | null>(null);
 
   const markSeenIfMine = useCallback(
@@ -42,14 +89,11 @@ export default function CallChat({
   );
 
   useEffect(() => {
-    if (!open) return;
     const element = list.current;
     if (element) element.scrollTop = element.scrollHeight;
-  }, [items, open]);
+  }, [items, visible]);
 
-  const toggleSound = useCallback(() => setSoundOn((v) => !v), []);
-
-  if (!open) return null;
+  if (typeof window === "undefined") return null;
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -58,89 +102,106 @@ export default function CallChat({
     setDraft("");
   }
 
+  const showPopover = openPopups.length > 0;
+
   return (
-    <aside className={`chat-sheet ${soundOn ? "" : "mute"}`}>
-      <header className="chat-head">
-        <span>our chat</span>
-        <div className="chat-head-actions">
-          <button
-            type="button"
-            className={soundOn ? "chat-sounds-on" : "chat-sounds-off"}
-            onClick={toggleSound}
-            aria-label={soundOn ? "Mute chat sounds" : "Unmute chat sounds"}
-            title={soundOn ? "Mute sounds" : "Unmute sounds"}
-          >
-            <Icon name={soundOn ? "mic" : "mic-off"} size={13} />
-          </button>
-          <button type="button" onClick={onScreenshot} aria-label="Send a screenshot" title="Send a screenshot">
-            <Icon name="camera" size={16} />
-          </button>
-          <button type="button" onClick={onClose} aria-label="Close chat">
-            <Icon name="hangup" size={15} />
-          </button>
+    <>
+      {showPopover && (
+        <div className={`chat-popover ${soundOn ? "" : "mute"} ${visible ? "popover-visible" : ""}`} onClick={onOpen}>
+          <div className="chat-popover-inner">
+            {openPopups.slice(-1).map((popup) => (
+              <div key={popup.id} className="popup-bubble">
+                <div className="popup-head">
+                  <span className="popup-from">{popup.from}</span>
+                  <span className="popup-time">{popupLabel(popup.at)}</span>
+                </div>
+                <p className="popup-text">{popup.text}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </header>
+      )}
 
-      <div className="chat-list" ref={list}>
-        {items.length === 0 && (
-          <p className="chat-empty">
-            Nothing yet. Show ✌️ to send a screenshot, 🫰 for hearts, 👍 for thumbs up, 🙏 for folded hands.
-          </p>
-        )}
+      {visible && (
+        <div className="call-chat-box" onClick={(e) => e.stopPropagation()}>
+          <div className="call-chat-head">
+            <div className="call-chat-head-left">
+              <span className="call-chat-heart-icon">♥</span>
+              <div className="call-chat-head-meta">
+                <span className="call-chat-partner">{partnerName || "my love"}</span>
+                <span className="call-chat-status">
+                  <span className="call-chat-status-dot" />
+                  online
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="call-chat-close-btn"
+              onClick={onClose}
+              aria-label="Close chat"
+              title="Close chat"
+            >
+              ×
+            </button>
+          </div>
 
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className={`chat-row ${item.mine ? "mine" : ""}`}
-            onTouchStart={() => markSeenIfMine(item)}
-            onMouseDown={() => markSeenIfMine(item)}
-          >
-            <div className="chat-bubble">
-              <div className="chat-bubble-inner">
-                {item.text && <p className="chat-text">{item.text}</p>}
-                {item.image && (
-                  <img className="chat-img" src={item.image} alt={`Screenshot from ${item.name}`} loading="lazy" />
-                )}
-                <div className="chat-foot">
-                  <span className="chat-time">{timeOf(item.at)}</span>
-                  {item.mine && (
-                    <span className="chat-ticks" aria-label="message receipts">
-                      <span className={item.delivered ? "tick tick-delivered" : "tick tick-pending"} />
-                      <span className={item.seen ? "tick tick-seen" : "tick tick-pending"} />
-                    </span>
-                  )}
+          <div className="call-chat-list" ref={list}>
+            {items.length === 0 && (
+              <div className="call-chat-empty-wrap">
+                <span className="call-chat-empty-heart">♥</span>
+                <p className="call-chat-empty">
+                  Whisper your thoughts, or show ✌️ for screenshot, 🫰 for hearts.
+                </p>
+              </div>
+            )}
+
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className={`call-chat-row ${item.mine ? "mine" : ""}`}
+                onTouchStart={() => markSeenIfMine(item)}
+                onMouseDown={() => markSeenIfMine(item)}
+              >
+                <div className="call-chat-bubble">
+                  <div className="call-chat-bubble-inner">
+                    {item.text && <p className="call-chat-text">{item.text}</p>}
+                    {item.image && (
+                      <img className="call-chat-img" src={item.image} alt={`Screenshot from ${item.name}`} loading="lazy" />
+                    )}
+                    <div className="call-chat-foot">
+                      <span className="call-chat-time">{timeOf(item.at)}</span>
+                      {item.mine && (
+                        <WhatsAppTicks delivered={item.delivered} seen={item.seen} />
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-              {item.mine && (
-                <span className="chat-mine-tag">{item.name}</span>
-              )}
-            </div>
-            {!item.mine && item.name && (
-              <span className="chat-other-tag">{item.name}</span>
-            )}
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div className="chat-emoji">
-        {QUICK_EMOJI.map((emoji) => (
-          <button key={emoji} type="button" onClick={() => onSend(emoji)}>
-            {emoji}
-          </button>
-        ))}
-      </div>
+          <div className="call-chat-emoji">
+            {ROMANTIC_EMOJIS.map((emoji) => (
+              <button key={emoji} type="button" onClick={() => onSend(emoji)}>
+                {emoji}
+              </button>
+            ))}
+          </div>
 
-      <form className="chat-composer" onSubmit={submit}>
-        <input
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="say something…"
-          maxLength={500}
-        />
-        <button type="submit" disabled={!draft.trim()} aria-label="Send message">
-          <Icon name="heart" size={16} />
-        </button>
-      </form>
-    </aside>
+          <form className="call-chat-composer" onSubmit={submit}>
+            <input
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder="whisper something sweet…"
+              maxLength={500}
+            />
+            <button type="submit" disabled={!draft.trim()} aria-label="Send message">
+              <Icon name="heart" size={15} />
+            </button>
+          </form>
+        </div>
+      )}
+    </>
   );
 }

@@ -34,7 +34,16 @@ export async function POST(request: Request) {
     }>();
 
   if (!user) return failure;
-  if (!(await verifyPassword(password, user.password_hash))) return failure;
+
+  const trimmed = password.trim();
+  let valid = await verifyPassword(password, user.password_hash);
+  if (!valid && trimmed !== password) {
+    valid = await verifyPassword(trimmed, user.password_hash);
+  }
+  if (!valid) {
+    valid = await verifyPassword(trimmed.toLowerCase(), user.password_hash);
+  }
+  if (!valid) return failure;
 
   const token = await createSession(db, user.id);
 

@@ -11,6 +11,7 @@ export type UserRow = {
   username: string;
   display_name: string;
   pair_id: string | null;
+  last_seen_at: number | null;
   created_at: number;
 };
 
@@ -111,23 +112,65 @@ export async function currentUser(db: D1Database, request: Request): Promise<Use
   const token = readCookie(request, SESSION_COOKIE);
   if (!token) return null;
 
+  const now = Date.now();
   const row = await db
     .prepare(
-      `SELECT u.id, u.username, u.display_name, u.pair_id, u.created_at
+      `SELECT u.id, u.username, u.display_name, u.pair_id, u.last_seen_at, u.created_at
        FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.token_hash = ? AND s.expires_at > ?`,
     )
-    .bind(await sha256(token), Date.now())
+    .bind(await sha256(token), now)
     .first<UserRow>();
 
-  return row ?? null;
+  if (!row) return null;
+
+  // Keep last_seen_at fresh on every authenticated hit.
+  try {
+    await db
+      .prepare("UPDATE users SET last_seen_at = ? WHERE id = ?")
+      .bind(now, row.id)
+      .run();
+    row.last_seen_at = now;
+  } catch {
+    // Non-fatal: last_seen_at is best-effort.
+  }
+
+  return row;
 }
 
 export async function partnerFor(db: D1Database, user: UserRow) {
   if (!user.pair_id) return null;
 
   return db
-    .prepare("SELECT id, display_name FROM users WHERE pair_id = ? AND id != ? LIMIT 1")
+    .prepare("SELECT id, display_name, last_seen_at FROM users WHERE pair_id = ? AND id != ? LIMIT 1")
     .bind(user.pair_id, user.id)
-    .first<{ id: string; display_name: string }>();
+    .first<{ id: string; display_name: string; last_seen_at: number | null }>();
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** WhatsApp-style last-seen label: "last seen today at 3:42 PM" etc. */
+export function lastSeenLabel(at: number | null): string {
+  if (!at) return "last seen recently";
+
+  const now = Date.now();
+  const diff = now - at;
+  const mins = Math.floor(diff / 60_000);
+  const hrs = Math.floor(diff / 3_600_000);
+  const days = Math.floor(diff / DAY_MS);
+
+  const d = new Date(at);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const hour12 = (d.getHours() % 12 || 12);
+  const ampm = d.getHours() < 12 ? "AM" : "PM";
+  const time = `${hour12}:${pad(d.getMinutes())} ${ampm}`;
+
+  if (mins < 1) return `last seen just now`;
+  if (mins < 60) return `last seen ${mins} min ago`;
+  if (hrs < 24) return `last seen today at ${time}`;
+  if (days < 2) return `last seen yesterday at ${time}`;
+  if (days < 7) return `last seen ${days} days ago`;
+
+  return `last seen on ${d.toLocaleDateString([], { month: "short", day: "numeric" })}`;
+}
+

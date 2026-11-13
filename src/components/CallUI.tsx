@@ -13,10 +13,9 @@ import {
 } from "@livekit/components-react";
 import type { TrackReference } from "@livekit/components-react";
 import { ConnectionState, RoomEvent, Track } from "livekit-client";
-import { useRouter } from "next/navigation";
 import CallChat from "./CallChat";
 import { Icon } from "./Icons";
-import { formatDuration, initialOf, partnerChip } from "@/lib/ui";
+import { formatDuration, initialOf } from "@/lib/ui";
 import { useCallChat } from "@/lib/callChat";
 import { useCanFlipCamera } from "@/lib/useCanFlipCamera";
 import { useGestureReactions } from "@/lib/useGestures";
@@ -31,7 +30,6 @@ type Props = {
 type Burst = { id: number; left: number; size: number; drift: number };
 
 export default function CallUI({ selfName, partnerName, onLeave }: Props) {
-  const router = useRouter();
   const room = useRoomContext();
   const connection = useConnectionState();
   const partners = useRemoteParticipants();
@@ -46,12 +44,11 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
   const burstTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const canFlip = useCanFlipCamera();
   const chat = useCallChat(room, selfName);
-  const [chatOpen, setChatOpen] = useState(false);
+  const [chatVisible, setChatVisible] = useState(false);
   const [gestures, setGestures] = useState<GestureStatus>("idle");
   const [showHint, setShowHint] = useState(false);
-  const [confirmLogout, setConfirmLogout] = useState(false);
-  const [partnerListOpen, setPartnerListOpen] = useState(false);
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const pipVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setSeconds((value) => value + 1), 1000);
@@ -63,6 +60,26 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
     const timer = setTimeout(() => setNotice(null), 2600);
     return () => clearTimeout(timer);
   }, [notice]);
+
+  useEffect(() => {
+    if (!chatVisible) return;
+    const handleOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (!target.closest(".call-chat-box") && !target.closest(".chat-toggle")) {
+        setChatVisible(false);
+      }
+    };
+    const id = setTimeout(() => {
+      window.addEventListener("click", handleOutside);
+      window.addEventListener("touchstart", handleOutside);
+    }, 50);
+    return () => {
+      clearTimeout(id);
+      window.removeEventListener("click", handleOutside);
+      window.removeEventListener("touchstart", handleOutside);
+    };
+  }, [chatVisible]);
 
   useEffect(() => {
     if (gestures !== "ready") return;
@@ -201,20 +218,6 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
       .catch(() => undefined);
   }, [burst, room]);
 
-  const sendThumbsUp = useCallback(() => {
-    room.localParticipant
-      .publishData(new TextEncoder().encode(JSON.stringify({ t: "thumbs_up" })), { reliable: true })
-      .catch(() => undefined);
-    flashGesture("👍 thumbs up");
-  }, [room]);
-
-  const sendFoldedHands = useCallback(() => {
-    room.localParticipant
-      .publishData(new TextEncoder().encode(JSON.stringify({ t: "folded_hands" })), { reliable: true })
-      .catch(() => undefined);
-    flashGesture("🙏 folded hands");
-  }, [room]);
-
   const sendScreenshot = useCallback(async () => {
     const video = stageRef.current?.querySelector("video") as HTMLVideoElement | null;
     if (!video || !video.videoWidth) {
@@ -231,6 +234,11 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
     const context = canvas.getContext("2d");
     if (!context) return;
 
+    // Mirror the screenshot so it matches what you see on screen (face view is mirrored).
+    if (video.classList.contains("mirror")) {
+      context.translate(width, 0);
+      context.scale(-1, 1);
+    }
     context.drawImage(video, 0, 0, width, height);
     await chat.sendImage(canvas.toDataURL("image/jpeg", 0.6));
     setNotice("Screenshot sent");
@@ -244,38 +252,16 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
   useGestureReactions({
     track: localCam?.publication.track,
     enabled: true,
-    onPeace: sendScreenshot,
-    onHeart: sendHearts,
-    onThumbsUp: sendThumbsUp,
-    onFoldedHands: sendFoldedHands,
+    onPeace: () => {
+      flashGesture("✌️ screenshot");
+      sendScreenshot();
+    },
+    onHeart: () => {
+      flashGesture("🫰 hearts");
+      sendHearts();
+    },
     onStatus: setGestures,
   });
-
-  async function logOut() {
-    if (!confirmLogout) {
-      setConfirmLogout(true);
-      setNotice("Tap again to log out");
-      setTimeout(() => setConfirmLogout(false), 3000);
-      return;
-    }
-
-    await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
-    room.disconnect();
-    window.location.href = "/";
-  }
-
-  /** Change partner while in a call.
-   * Leaves the current LiveKit room (which is bound to the current pair id)
-   * and routes back to the app so the user can pick or refresh the partner,
-   * then rejoin with the new partner's token.
-   */
-  async function changePartner() {
-    room.disconnect();
-    setNotice("Choosing a new partner…");
-    setPartnerListOpen(false);
-    router.push("/app");
-    router.refresh();
-  }
 
   function leave() {
     room.disconnect();
@@ -284,6 +270,230 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
 
   const connected = connection === ConnectionState.Connected;
   const partnerLabel = partner?.name || partnerName;
+
+  // Google Meet-style Picture-in-Picture: Opens an OS-level floating window that
+  // stays on top of all other tabs and desktop apps when switching tabs or clicking pop-out.
+  const pipWindowRef = useRef<any>(null);
+
+  const openDocumentPip = useCallback(async () => {
+    // Document Picture-in-Picture API (Chrome 116+):
+    if (typeof window !== "undefined" && "documentPictureInPicture" in window) {
+      if ((window as any).documentPictureInPicture.window) {
+        (window as any).documentPictureInPicture.window.close();
+        return;
+      }
+
+      try {
+        const pipWin = await (window as any).documentPictureInPicture.requestWindow({
+          width: 340,
+          height: 410,
+        });
+        pipWindowRef.current = pipWin;
+
+        // Copy all stylesheets from main document
+        [...document.styleSheets].forEach((sheet) => {
+          try {
+            const cssRules = [...sheet.cssRules].map((r) => r.cssText).join("");
+            const style = pipWin.document.createElement("style");
+            style.textContent = cssRules;
+            pipWin.document.head.appendChild(style);
+          } catch {
+            const link = pipWin.document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = sheet.href;
+            pipWin.document.head.appendChild(link);
+          }
+        });
+
+        pipWin.document.title = `HERZ — ${partnerLabel}`;
+        pipWin.document.body.className = "pip-window-body";
+
+        // Video Stage
+        const container = pipWin.document.createElement("div");
+        container.className = "pip-video-container";
+
+        const video = pipWin.document.createElement("video");
+        video.className = "pip-video-el";
+        video.autoplay = true;
+        video.playsInline = true;
+        video.muted = true;
+
+        const activeCam = remoteCam || localCam;
+        const tr =
+          activeCam && "track" in activeCam
+            ? (activeCam.track as { mediaStreamTrack?: MediaStreamTrack })?.mediaStreamTrack
+            : undefined;
+
+        if (tr) {
+          video.srcObject = new MediaStream([tr]);
+          video.play().catch(() => undefined);
+        }
+
+        const tag = pipWin.document.createElement("div");
+        tag.className = "pip-name-tag";
+        tag.textContent = partnerLabel;
+
+        container.appendChild(video);
+        container.appendChild(tag);
+        pipWin.document.body.appendChild(container);
+
+        // Control bar
+        const bar = pipWin.document.createElement("div");
+        bar.className = "pip-controls-bar";
+
+        const micSvg = (active: boolean) =>
+          active
+            ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 18v4"/><path d="M8 22h8"/></svg>`
+            : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5a3 3 0 0 1 5.9-.7"/><path d="M15 9.4V11a3 3 0 0 1-4.9 2.3"/><path d="M5 10v1a7 7 0 0 0 10.5 6.1"/><path d="M19 10v1a7 7 0 0 1-.9 3.4"/><path d="M12 18v4"/><path d="M8 22h8"/><path d="M3 3l18 18"/></svg>`;
+
+        const camSvg = (active: boolean) =>
+          active
+            ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5H3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"/><path d="M22 7.5 15 11v2l7 3.5v-9z"/></svg>`
+            : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 15.5V18a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h2"/><path d="M9.5 5H14a1 1 0 0 1 1 1v4.5"/><path d="M22 7.5 15 11v2l7 3.5v-9z"/><path d="M3 3l18 18"/></svg>`;
+
+        const hangupSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(135 12 12)"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2.1z"/></g></svg>`;
+
+        const micBtn = pipWin.document.createElement("button");
+        micBtn.className = `pip-ctrl-btn ${micOn ? "" : "off"}`;
+        micBtn.title = micOn ? "Mute microphone" : "Unmute microphone";
+        micBtn.innerHTML = micSvg(Boolean(micOn));
+        micBtn.onclick = async () => {
+          await toggleMic();
+          micBtn.className = `pip-ctrl-btn ${!micOn ? "" : "off"}`;
+          micBtn.innerHTML = micSvg(!micOn);
+        };
+
+        const camBtn = pipWin.document.createElement("button");
+        camBtn.className = `pip-ctrl-btn ${camOn ? "" : "off"}`;
+        camBtn.title = camOn ? "Turn camera off" : "Turn camera on";
+        camBtn.innerHTML = camSvg(Boolean(camOn));
+        camBtn.onclick = async () => {
+          await toggleCam();
+          camBtn.className = `pip-ctrl-btn ${!camOn ? "" : "off"}`;
+          camBtn.innerHTML = camSvg(!camOn);
+        };
+
+        const endBtn = pipWin.document.createElement("button");
+        endBtn.className = "pip-ctrl-btn end";
+        endBtn.title = "End call";
+        endBtn.innerHTML = hangupSvg;
+        endBtn.onclick = () => {
+          pipWin.close();
+          leave();
+        };
+
+        bar.appendChild(micBtn);
+        bar.appendChild(camBtn);
+        bar.appendChild(endBtn);
+        pipWin.document.body.appendChild(bar);
+
+        pipWin.addEventListener("pagehide", () => {
+          pipWindowRef.current = null;
+        });
+
+        return;
+      } catch (err) {
+        console.warn("Document PiP request failed, falling back to standard PiP:", err);
+      }
+    }
+
+    // Standard HTML5 video PiP fallback
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (pipVideoRef.current) {
+        await pipVideoRef.current.requestPictureInPicture();
+      }
+    } catch {
+      // ignore
+    }
+  }, [remoteCam, localCam, partnerLabel, micOn, camOn, toggleMic, toggleCam, leave]);
+
+  // Automatically pop out floating window when the user switches to another tab
+  useEffect(() => {
+    const onVisibility = async () => {
+      if (document.hidden) {
+        if (!document.pictureInPictureElement) {
+          const video = pipVideoRef.current || stageRef.current?.querySelector("video");
+          if (video && typeof video.requestPictureInPicture === "function") {
+            try {
+              await video.requestPictureInPicture();
+            } catch {
+              // autoPictureInPicture handles browsers where requestPictureInPicture requires user gesture
+            }
+          }
+        }
+      } else {
+        // Returned to tab: return video back to page
+        if (document.pictureInPictureElement) {
+          try {
+            await document.exitPictureInPicture();
+          } catch {
+            // ignore
+          }
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
+  // MediaSession actions for OS / Chrome PiP toolbar
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+    try {
+      (navigator.mediaSession as any).setActionHandler?.("togglemicrophone", () => {
+        toggleMic();
+      });
+      (navigator.mediaSession as any).setActionHandler?.("togglecamera", () => {
+        toggleCam();
+      });
+      (navigator.mediaSession as any).setActionHandler?.("hangup", () => {
+        leave();
+      });
+    } catch {
+      // ignore
+    }
+  }, [toggleMic, toggleCam, leave]);
+
+  useEffect(() => {
+    if (!pipVideoRef.current) return;
+    try {
+      (pipVideoRef.current as any).autoPictureInPicture = true;
+      pipVideoRef.current.setAttribute("autopictureinpicture", "true");
+    } catch {
+      // ignore
+    }
+    pipVideoRef.current.srcObject = null;
+    pipVideoRef.current.play().catch(() => undefined);
+    const activeCam = remoteCam || localCam;
+    if (!activeCam) return;
+    const tr =
+      "track" in activeCam
+        ? (activeCam.track as { mediaStreamTrack?: MediaStreamTrack })?.mediaStreamTrack
+        : undefined;
+    if (!tr) return;
+    pipVideoRef.current.srcObject = new MediaStream([tr]);
+    pipVideoRef.current.play().catch(() => undefined);
+    return () => {
+      if (pipVideoRef.current) {
+        pipVideoRef.current.pause();
+        pipVideoRef.current.srcObject = null;
+      }
+    };
+  }, [remoteCam, localCam]);
+
+  useEffect(() => {
+    const vids = stageRef.current?.querySelectorAll("video");
+    vids?.forEach((v) => {
+      try {
+        (v as any).autoPictureInPicture = true;
+        v.setAttribute("autopictureinpicture", "true");
+      } catch {
+        // ignore
+      }
+    });
+  }, [stage, remoteCam, localCam]);
 
   return (
     <div className="call">
@@ -297,69 +507,24 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
               ? "reconnecting"
               : "connecting"}
         </span>
-                  <div className="call-actions">
-            <button
-              className="call-partner-chip"
-              type="button"
-              onClick={() => setPartnerListOpen((v) => !v)}
-              aria-label="Partner info and change partner"
-              title="Partner info"
-            >
-              <span dangerouslySetInnerHTML={{ __html: partnerChip(partnerLabel, selfName) }} />
-              <span className="call-switch-hint">change partner</span>
-            </button>
-            <button
-              className="top-icon"
-              type="button"
-              onClick={() => {
-                chat.clearUnread();
-                setChatOpen(true);
-              }}
-              aria-label="Open chat"
-              title="Chat"
-            >
-              <Icon name="chat" size={17} />
-              {chat.unread > 0 && !chatOpen && <span className="top-badge">{chat.unread}</span>}
-            </button>
-
-            <button
-              className={`top-icon ${confirmLogout ? "warn" : ""}`}
-              type="button"
-              onClick={logOut}
-              aria-label="Log out"
-              title="Log out"
-            >
-              <Icon name="logout" size={17} />
-            </button>
-          </div>
-          {partnerListOpen && (
-            <div className="partner-list" role="dialog" aria-label="Change partner">
-              <div className="partner-list-head">
-                <span>who's on the call</span>
-                <button
-                  className="top-icon"
-                  type="button"
-                  onClick={() => setPartnerListOpen(false)}
-                  aria-label="Close partner list"
-                >
-                  <Icon name="hangup" size={15} />
-                </button>
-              </div>
-              <p className="partner-list-name">{partnerLabel}</p>
-              <p className="partner-list-sub">Connected as a couple. To call someone else, leave and pick a new partner.</p>
-              <button className="btn btn-ghost" type="button" onClick={changePartner}>
-                Leave this partner
-              </button>
-              <p className="partner-list-note">Your place in the call will end. You can then make or accept a new invite on the home screen.</p>
-            </div>
-
-          )}
+        <div className="call-top-actions">
+          <button
+            className={`top-icon chat-toggle ${chatVisible ? "chat-toggle-on" : ""} ${chat.unread > 0 ? "has-badge" : ""}`}
+            type="button"
+            onClick={() => setChatVisible((v) => !v)}
+            aria-label={chatVisible ? "Close chat" : "Open chat"}
+            title="Chat"
+          >
+            <Icon name="chat" size={15} />
+            {chat.unread > 0 && <span className="top-badge">{chat.unread}</span>}
+          </button>
+        </div>
       </header>
 
       <div className="call-stage" ref={stageRef}>
         {stage ? (
           screenStage ? (
-            <div className="stage-with-faces">
+            <div className={`stage-with-faces ${chatVisible ? "chat-open" : ""}`}>
               <div className="stage-with-faces-inner">
                 <div className="stage-video-wrap">
                   <VideoTrack
@@ -426,7 +591,7 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
 
         {showHint && (
           <div className="gesture-hint">
-            ✌️ screenshot · 🫰 hearts · 👍 thumbs up · 🙏 folded hands
+            ✌️ screenshot · 🫰 hearts
           </div>
         )}
 
@@ -552,17 +717,31 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
       </div>
 
       <CallChat
-        open={chatOpen}
+        visible={chatVisible}
+        openPopups={chat.popups}
         items={chat.items}
-        onClose={() => setChatOpen(false)}
+        partnerName={partnerLabel}
         onSend={chat.sendText}
         onScreenshot={sendScreenshot}
         onMarkSeen={chat.markSeenFor}
         getReceipt={chat.getReceipt}
+        soundOn={chat.soundEnabled}
+        onToggleSound={chat.toggleSound}
+        onOpen={() => setChatVisible(true)}
+        onClose={() => setChatVisible(false)}
       />
 
       {notice && <div className="toast">{notice}</div>}
       {gestureFlash && <div className="gesture-toast" aria-live="polite">{gestureFlash}</div>}
+      {chat.popups.length > 0 && <div className="popup-layer" aria-live="polite">{/* popups render inside CallChat */}</div>}
+      <video
+        ref={pipVideoRef}
+        autoPlay
+        muted
+        playsInline
+        className="auto-pip-video"
+        aria-hidden="true"
+      />
       <RoomAudioRenderer />
     </div>
   );

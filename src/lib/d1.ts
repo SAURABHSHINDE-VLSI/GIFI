@@ -21,6 +21,7 @@ const SCHEMA = [
     display_name TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     pair_id TEXT,
+    last_seen_at INTEGER,
     created_at INTEGER NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS pairs (
@@ -48,6 +49,15 @@ let migration: Promise<void> | null = null;
 async function migrate(db: D1Database) {
   for (const statement of SCHEMA) {
     await db.prepare(statement).run();
+  }
+
+  // Add the last_seen_at column to any pre-existing users table.
+  // CREATE TABLE IF NOT EXISTS does not alter an existing table, so this
+  // ensures older deployments get the column without losing data.
+  try {
+    await db.prepare("ALTER TABLE users ADD COLUMN last_seen_at INTEGER").run();
+  } catch {
+    // Column may already exist; ignore.
   }
 }
 

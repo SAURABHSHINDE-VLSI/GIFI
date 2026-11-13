@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/d1";
-import { currentUser, partnerFor } from "@/lib/auth";
+import { currentUser, partnerFor, lastSeenLabel } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,8 +21,14 @@ export async function GET(request: Request) {
         username: user.username,
         displayName: user.display_name,
         paired: Boolean(user.pair_id),
+        lastSeen: lastSeenLabel(user.last_seen_at),
       },
-      partner: partner ? { displayName: partner.display_name } : null,
+      partner: partner
+        ? {
+            displayName: partner.display_name,
+            lastSeen: lastSeenLabel(partner.last_seen_at),
+          }
+        : null,
     },
     { headers: { "cache-control": "no-store" } },
   );
