@@ -80,9 +80,9 @@ export default function CallChat({
   const [draft, setDraft] = useState("");
   const list = useRef<HTMLDivElement | null>(null);
 
-  const markSeenIfMine = useCallback(
+  const markSeen = useCallback(
     (item: ChatItem) => {
-      if (!item.mine) return;
+      if (item.mine) return;
       onMarkSeen?.(item.id);
     },
     [onMarkSeen],
@@ -160,8 +160,8 @@ export default function CallChat({
               <div
                 key={item.id}
                 className={`call-chat-row ${item.mine ? "mine" : ""}`}
-                onTouchStart={() => markSeenIfMine(item)}
-                onMouseDown={() => markSeenIfMine(item)}
+                onTouchStart={() => markSeen(item)}
+                onMouseDown={() => markSeen(item)}
               >
                 <div className="call-chat-bubble">
                   <div className="call-chat-bubble-inner">
