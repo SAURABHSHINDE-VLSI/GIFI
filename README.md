@@ -22,7 +22,7 @@ HERZ is an intimate, private two-person video-calling app built for couples. Eac
 ## Getting Started
 
 ### 1. Prerequisites
-- Node.js 20+ installed.
+- Node.js 22.12.0+ (required by Wrangler).
 - A Cloudflare account with Wrangler CLI.
 - A [LiveKit Cloud](https://cloud.livekit.io) project (or self-hosted LiveKit server).
 
@@ -67,6 +67,14 @@ LIVEKIT_API_SECRET=your_api_secret
      ```bash
      npx wrangler d1 migrations apply herz --remote
      ```
+   - **To inspect migration status**:
+     ```bash
+     npx wrangler d1 migrations list herz --local
+     npx wrangler d1 migrations list herz --remote
+     ```
+   Migrations are located in `migrations/`:
+   - `0001_init.sql`: Core tables (`users`, `pairs`, `invites`, `sessions`) and indexes.
+   - `0002_rate_limits_and_last_seen.sql`: Rate limiting table and `last_seen_at` column.
 
 ---
 
