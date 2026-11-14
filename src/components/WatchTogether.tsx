@@ -1038,7 +1038,7 @@ export default function WatchTogether({
   );
 
   const renderControls = () => {
-    if (!clock || doodleActive) return null;
+    if (!clock || doodleActive || pickerModalOpen) return null;
     const isYouTube = clock.mediaType === "youtube";
 
     return (
@@ -1153,8 +1153,6 @@ export default function WatchTogether({
                     title={clock.title}
                   />
                 </div>
-
-                {renderControls()}
               </>
             ) : (
               <>
@@ -1177,8 +1175,6 @@ export default function WatchTogether({
                     allowFullScreen
                   />
                 </div>
-
-                {renderControls()}
               </>
             )}
 
@@ -1228,6 +1224,9 @@ export default function WatchTogether({
             </div>
           </div>
         </div>
+
+        {/* YouTube / Media Playback Controls docked at bottom right */}
+        {renderControls()}
 
         {/* In-stage browser for switching video while watching */}
         {pickerModalOpen && renderBrowser()}
