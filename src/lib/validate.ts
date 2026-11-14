@@ -86,9 +86,17 @@ export function validateWatchClock(clock: unknown): ValidWatchClock | null {
   };
 }
 
+export type ValidSyncStatePayload = {
+  videoId: string;
+  pos: number;
+  at: number;
+  playing: boolean;
+};
+
 export type ValidIncomingWatchMessage =
   | { t: "watch_clock_req" }
-  | { t: "watch_behind_sync_req"; localTime: number }
+  | { t: "watch_sync_probe"; videoId: string; pos: number; at: number; playing: boolean }
+  | { t: "watch_sync_state"; videoId: string; pos: number; at: number; playing: boolean }
   | { t: "watch_clock_sync"; clock: ValidWatchClock; reason?: string }
   | { t: "watch_load"; videoId: string; title: string; mediaType: ValidMediaType; startTime: number }
   | { t: "watch_close" };
@@ -101,11 +109,18 @@ export function validateIncomingWatchMessage(msg: unknown): ValidIncomingWatchMe
     return { t: "watch_clock_req" };
   }
 
-  if (m.t === "watch_behind_sync_req") {
-    if (typeof m.localTime !== "number" || !Number.isFinite(m.localTime) || m.localTime < 0 || m.localTime > 86400) {
-      return null;
-    }
-    return { t: "watch_behind_sync_req", localTime: m.localTime };
+  if (m.t === "watch_sync_probe" || m.t === "watch_sync_state") {
+    if (typeof m.videoId !== "string" || !isValidYouTubeId(m.videoId)) return null;
+    if (typeof m.pos !== "number" || !Number.isFinite(m.pos) || m.pos < 0 || m.pos > 86400) return null;
+    if (typeof m.at !== "number" || !Number.isFinite(m.at) || m.at <= 0) return null;
+    if (typeof m.playing !== "boolean") return null;
+    return {
+      t: m.t,
+      videoId: m.videoId,
+      pos: m.pos,
+      at: m.at,
+      playing: m.playing,
+    };
   }
 
   if (m.t === "watch_clock_sync") {

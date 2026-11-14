@@ -5,8 +5,10 @@ import type { Room } from "livekit-client";
 import { RoomEvent } from "livekit-client";
 import { VideoTrack } from "@livekit/components-react";
 import type { TrackReference } from "@livekit/components-react";
-import { initialOf } from "@/lib/ui";
+import { initialOf, formatDuration } from "@/lib/ui";
 import { serverNow, resyncServerTime } from "@/lib/serverTime";
+import { decideSync, projectPosition } from "@/lib/watchSync";
+type PeerWatchState = Parameters<typeof decideSync>[0];
 import { Icon } from "./Icons";
 import {
   buildSpotifyEmbedUrl,
@@ -225,22 +227,7 @@ export function computeClockTime(clock: SharedWatchClock | null): number {
   return Math.max(0, clock.baseTime + elapsed);
 }
 
-/**
- * Resolves the sync target timestamp between local and remote partners.
- * 1. Whichever YouTube video is behind (smaller timestamp), sync starts from there (Math.min),
- *    so neither partner misses any content.
- * 2. If one partner has just started/joined (<= 2s) while the other is already watching (> 2s),
- *    NEVER restart the video from 0:00! Instead, catch up to the active watchhead.
- */
-export function resolveBehindSyncTime(localTime: number, remoteTime: number): number {
-  const l = Math.max(0, localTime || 0);
-  const r = Math.max(0, remoteTime || 0);
 
-  if (l <= 2 && r > 2) return r;
-  if (r <= 2 && l > 2) return l;
-
-  return Math.min(l, r);
-}
 
 export default function WatchTogether({
   room,
@@ -292,6 +279,11 @@ export default function WatchTogether({
   const [feedError, setFeedError] = useState<string | null>(null);
   const restoredBrowserRef = useRef(false);
   const isLeaderRef = useRef(true);
+  const youtubePlayerStateRef = useRef<number>(-1);
+  const lastSeekTimeRef = useRef<number>(0);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
+  const syncNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Timestamp of the last play/pause/seek/load you started on this device.
   const lastLocalActionRef = useRef(0);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -450,20 +442,85 @@ export default function WatchTogether({
     };
   }, [togglePlayRef, togglePlay]);
 
-  // Request Behind-Sync with partner
+  const executeSyncDecision = useCallback(
+    (local: PeerWatchState, remote: PeerWatchState) => {
+      const decision = decideSync(local, remote, serverNow(), 1.5);
+      if (decision.action === "in-sync") {
+        return;
+      }
+
+      if (decision.laggard === "local") {
+        // Guards: do not seek if buffering (3), acted recently (< 6s), or seek cooldown (< 5s)
+        if (youtubePlayerStateRef.current === 3) return;
+        if (Date.now() - lastLocalActionRef.current < 6000) return;
+        if (Date.now() - lastSeekTimeRef.current < 5000) return;
+
+        lastSeekTimeRef.current = Date.now();
+        const targetPos = decision.target;
+        const targetPlaying = decision.playing;
+
+        postIframeCommand("seekTo", [targetPos, true]);
+        lastReportedIframeTimeRef.current = targetPos;
+        if (!targetPlaying) {
+          postIframeCommand("pauseVideo");
+        } else {
+          postIframeCommand("playVideo");
+        }
+
+        const cur = clockRef.current;
+        if (cur) {
+          const updated: SharedWatchClock = {
+            ...cur,
+            baseTime: targetPos,
+            epochTimestamp: serverNow(),
+            isPlaying: targetPlaying,
+            version: serverNow(),
+          };
+          applyClock(updated, true);
+        }
+
+        setSyncNotice(`Synced to ${partnerLabel || "partner"} at ${formatDuration(Math.floor(targetPos))}`);
+        if (syncNoticeTimeoutRef.current) clearTimeout(syncNoticeTimeoutRef.current);
+        syncNoticeTimeoutRef.current = setTimeout(() => setSyncNotice(null), 3000);
+
+        // After laggard seeks, wait 1.5s, measure again, and retry once if still > 1s off
+        if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = setTimeout(() => {
+          postIframeCommand("getCurrentTime");
+          setTimeout(() => {
+            const measured = lastReportedIframeTimeRef.current;
+            const expectedLeader = projectPosition(remote, serverNow());
+            if (Math.abs(expectedLeader - measured) > 1.0 && youtubePlayerStateRef.current !== 3) {
+              postIframeCommand("seekTo", [expectedLeader, true]);
+              lastReportedIframeTimeRef.current = expectedLeader;
+            }
+          }, 100);
+        }, 1500);
+      } else {
+        // Remote is laggard, we are leader
+        setSyncNotice(`${partnerLabel || "Partner"} caught up to you`);
+        if (syncNoticeTimeoutRef.current) clearTimeout(syncNoticeTimeoutRef.current);
+        syncNoticeTimeoutRef.current = setTimeout(() => setSyncNotice(null), 3000);
+      }
+    },
+    [applyClock, partnerLabel, postIframeCommand],
+  );
+
+  // Instant sync probe with partner
   const resyncVideo = useCallback(() => {
     const cur = clockRef.current;
-    if (!cur || !cur.videoId) return;
+    if (!cur || !cur.videoId || cur.mediaType !== "youtube") return;
 
     const localCalculated = computeClockTime(cur);
     const localActual =
       lastReportedIframeTimeRef.current > 0 ? lastReportedIframeTimeRef.current : localCalculated;
 
     broadcastWatch({
-      t: "watch_behind_sync_req",
-      localTime: localActual,
+      t: "watch_sync_probe",
       videoId: cur.videoId,
-      senderEpoch: serverNow(),
+      pos: localActual,
+      at: serverNow(),
+      playing: cur.isPlaying,
     });
   }, [broadcastWatch]);
 
@@ -626,14 +683,15 @@ export default function WatchTogether({
   }, [isActive, broadcastWatch]);
 
 
-  // Polling fallback to ask YouTube iframe for current time
+  // Polling fallback to ask YouTube iframe for current time (500ms when sync toggle is ON, 1s otherwise)
   useEffect(() => {
     if (!clock?.videoId || clock.mediaType !== "youtube") return;
+    const pollInterval = syncEnabled ? 500 : 1000;
     const interval = setInterval(() => {
       postIframeCommand("getCurrentTime");
-    }, 1000);
+    }, pollInterval);
     return () => clearInterval(interval);
-  }, [clock?.videoId, clock?.mediaType, postIframeCommand]);
+  }, [clock?.videoId, clock?.mediaType, syncEnabled, postIframeCommand]);
 
   // Listen to YouTube postMessage events for accurate time tracking
   useEffect(() => {
@@ -644,6 +702,11 @@ export default function WatchTogether({
           if (typeof data.info.currentTime === "number" && data.info.currentTime > 0) {
             lastReportedIframeTimeRef.current = data.info.currentTime;
           }
+          if (typeof data.info.playerState === "number") {
+            youtubePlayerStateRef.current = data.info.playerState;
+          }
+        } else if (data?.event === "onStateChange" && typeof data?.info === "number") {
+          youtubePlayerStateRef.current = data.info;
         }
       } catch {
         // ignore non-json messages
@@ -653,21 +716,24 @@ export default function WatchTogether({
     return () => window.removeEventListener("message", handleMsg);
   }, []);
 
-  // Gentle auto drift correction: every 3.5s, align iframe if drift > 3.0s
+  // Auto-sync correction: while syncEnabled is ON, broadcast local state every 2s
   useEffect(() => {
-    if (!clock?.isPlaying || !clock?.videoId || clock.mediaType !== "youtube" || !syncEnabled) return;
-
-    const driftInterval = setInterval(() => {
-      const expected = computeClockTime(clockRef.current);
-      const actual = lastReportedIframeTimeRef.current;
-
-      if (actual > 2 && expected > 2 && Math.abs(expected - actual) > 3) {
-        postIframeCommand("seekTo", [expected, true]);
-      }
-    }, 3500);
-
-    return () => clearInterval(driftInterval);
-  }, [clock?.isPlaying, clock?.videoId, clock?.mediaType, syncEnabled, postIframeCommand]);
+    if (!clock?.videoId || clock.mediaType !== "youtube" || !syncEnabled || !isActive) return;
+    const interval = setInterval(() => {
+      const cur = clockRef.current;
+      if (!cur || !cur.videoId) return;
+      const localActual =
+        lastReportedIframeTimeRef.current > 0 ? lastReportedIframeTimeRef.current : computeClockTime(cur);
+      broadcastWatch({
+        t: "watch_sync_state",
+        videoId: cur.videoId,
+        pos: localActual,
+        at: serverNow(),
+        playing: cur.isPlaying,
+      });
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [clock?.videoId, clock?.mediaType, syncEnabled, isActive, broadcastWatch]);
 
   // Handle LiveKit data channel events from partner with strict validation
   useEffect(() => {
@@ -699,35 +765,51 @@ export default function WatchTogether({
           }
         }
 
-        // 2. Behind-Sync Request
-        else if (msg.t === "watch_behind_sync_req") {
+        // 2. Instant Sync Probe from partner
+        else if (msg.t === "watch_sync_probe") {
           const cur = clockRef.current;
-          if (!cur || !cur.videoId) return;
+          if (!cur || !cur.videoId || cur.videoId !== msg.videoId || cur.mediaType !== "youtube") return;
 
-          const remoteTime = msg.localTime;
-          const myCalculated = computeClockTime(cur);
-          const myActual =
-            lastReportedIframeTimeRef.current > 0 ? lastReportedIframeTimeRef.current : myCalculated;
-
-          const behindTarget = resolveBehindSyncTime(myActual, remoteTime);
-
-          const syncedClock: SharedWatchClock = {
+          const localActual =
+            lastReportedIframeTimeRef.current > 0 ? lastReportedIframeTimeRef.current : computeClockTime(cur);
+          const localState: PeerWatchState = {
             videoId: cur.videoId,
-            title: cur.title,
-            baseTime: behindTarget,
-            epochTimestamp: serverNow(),
-            isPlaying: cur.isPlaying,
-            version: serverNow(),
-            mediaType: cur.mediaType,
+            pos: localActual,
+            at: serverNow(),
+            playing: cur.isPlaying,
           };
 
-          applyClock(syncedClock, true);
-
+          // Reply with current state so the probe initiator can also evaluate
           broadcastWatch({
-            t: "watch_clock_sync",
-            clock: syncedClock,
-            reason: "behind_sync_resolved",
+            t: "watch_sync_state",
+            videoId: localState.videoId,
+            pos: localState.pos,
+            at: localState.at,
+            playing: localState.playing,
           });
+
+          if (syncEnabled) {
+            executeSyncDecision(localState, msg);
+          }
+        }
+
+        // 3. Sync State response / periodic update from partner
+        else if (msg.t === "watch_sync_state") {
+          const cur = clockRef.current;
+          if (!cur || !cur.videoId || cur.videoId !== msg.videoId || cur.mediaType !== "youtube") return;
+
+          const localActual =
+            lastReportedIframeTimeRef.current > 0 ? lastReportedIframeTimeRef.current : computeClockTime(cur);
+          const localState: PeerWatchState = {
+            videoId: cur.videoId,
+            pos: localActual,
+            at: serverNow(),
+            playing: cur.isPlaying,
+          };
+
+          if (syncEnabled) {
+            executeSyncDecision(localState, msg);
+          }
         }
 
         // 3. Shared Clock Synchronization event
@@ -780,7 +862,7 @@ export default function WatchTogether({
     return () => {
       room.off(RoomEvent.DataReceived, onData);
     };
-  }, [room, applyClock, loadMedia, closePlayer, syncEnabled, broadcastWatch]);
+  }, [room, applyClock, loadMedia, closePlayer, syncEnabled, broadcastWatch, executeSyncDecision]);
 
   const loadFeed = useCallback(async (query: string | null) => {
     setFeedLoading(true);
@@ -1237,6 +1319,12 @@ export default function WatchTogether({
             </div>
           </div>
         </div>
+
+        {syncNotice && (
+          <div className="watch-sync-notice" role="status" aria-live="polite">
+            {syncNotice}
+          </div>
+        )}
 
         {/* YouTube / Media Playback Controls docked at bottom right */}
         {renderControls()}
