@@ -3478,6 +3478,118 @@ button {
   letter-spacing: 0.02em;
 }
 
+.watch-sync-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 38px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.watch-sync-btn.synced {
+  background: rgba(95, 208, 138, 0.16);
+  border: 1px solid rgba(95, 208, 138, 0.42);
+  color: #5fd08a;
+}
+
+.watch-sync-btn.synced:hover {
+  background: rgba(95, 208, 138, 0.26);
+  border-color: rgba(95, 208, 138, 0.6);
+}
+
+.watch-sync-btn.off {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--muted);
+}
+
+.watch-sync-btn.off:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--foreground);
+}
+
+.watch-sync-btn.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+}
+
+.watch-sync-btn:focus-visible {
+  outline: 2px solid #5fd08a;
+  outline-offset: 2px;
+}
+
+.watch-sync-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #5fd08a;
+  box-shadow: 0 0 6px rgba(95, 208, 138, 0.8);
+  animation: syncDotPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.watch-sync-btn.off .watch-sync-dot {
+  background: #888;
+  box-shadow: none;
+  animation: none;
+}
+
+.watch-sync-dot.disabled {
+  background: #666;
+  box-shadow: none;
+  animation: none;
+}
+
+@keyframes syncDotPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.6;
+  }
+}
+
+.watch-sync-notice {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(18, 18, 22, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(95, 208, 138, 0.35);
+  color: #e5e7eb;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  z-index: 55;
+  pointer-events: none;
+  animation: syncNoticeFade 0.25s ease-out;
+}
+
+@keyframes syncNoticeFade {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 /* Minimised player that floats while you browse */
 .watch-video-wrap.mini {
   position: fixed;

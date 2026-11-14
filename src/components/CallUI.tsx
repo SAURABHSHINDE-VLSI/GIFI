@@ -17,12 +17,19 @@ import CallChat from "./CallChat";
 import CallControls from "./CallControls";
 import VideoStage from "./VideoStage";
 import { useCallPip } from "@/lib/useCallPip";
-import { loadAutoPipPref, saveAutoPipPref } from "@/lib/effects";
+import {
+  loadAutoPipPref,
+  saveAutoPipPref,
+  loadPrefs,
+  savePrefs,
+  loadWatchSyncPref,
+  saveWatchSyncPref,
+  type EffectsPrefs,
+} from "@/lib/effects";
 import WatchTogether from "./WatchTogether";
 import LoveCanvas from "./LoveCanvas";
 import MomentsScrapbook from "./MomentsScrapbook";
 import EffectsSheet from "./EffectsSheet";
-import { loadPrefs, savePrefs, type EffectsPrefs } from "@/lib/effects";
 import { applyNoiseSuppression } from "@/lib/audioEffects";
 import { useBackgroundEffect } from "@/lib/useBackgroundEffect";
 import { Icon } from "./Icons";
@@ -80,7 +87,11 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
   const [, setWatchHasVideo] = useState(false);
   const [watchIsPlaying, setWatchIsPlaying] = useState(false);
   const watchTogglePlayRef = useRef<(() => void) | null>(null);
-  const [watchSynced] = useState(true);
+  const [watchSynced, setWatchSynced] = useState<boolean>(() => loadWatchSyncPref());
+  const handleWatchSyncChange = useCallback((enabled: boolean) => {
+    setWatchSynced(enabled);
+    saveWatchSyncPref(enabled);
+  }, []);
   const watchSyncRef = useRef<(() => void) | null>(null);
   const watchRewindRef = useRef<((seconds?: number) => void) | null>(null);
   const watchOpenPickerRef = useRef<(() => void) | null>(null);
@@ -608,6 +619,7 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
           openPickerRef={watchOpenPickerRef}
           isDucked={isDucked}
           syncEnabled={watchSynced}
+          onSyncChange={handleWatchSyncChange}
           onReact={sendEmojiBurst}
           remoteCam={remoteCam}
           localCam={localCam}

@@ -40,6 +40,7 @@ type Props = {
   openPickerRef?: React.MutableRefObject<(() => void) | null>;
   isDucked?: boolean;
   syncEnabled?: boolean;
+  onSyncChange?: (enabled: boolean) => void;
   onReact?: (emoji: string) => void;
   remoteCam?: TrackReference;
   localCam?: TrackReference;
@@ -242,6 +243,7 @@ export default function WatchTogether({
   openPickerRef,
   isDucked = false,
   syncEnabled = true,
+  onSyncChange,
   remoteCam,
   localCam,
   partnerLabel = "Partner",
@@ -1194,6 +1196,40 @@ export default function WatchTogether({
           </button>
         )}
         <span className="watch-ctrl-time">{formatClockTime(displayTime)}</span>
+        {isYouTube ? (
+          <button
+            type="button"
+            className={`watch-ctrl watch-sync-btn ${syncEnabled ? "synced" : "off"}`}
+            onClick={() => {
+              const next = !syncEnabled;
+              onSyncChange?.(next);
+              if (next) {
+                resyncVideo();
+              }
+            }}
+            aria-pressed={syncEnabled}
+            title={
+              syncEnabled
+                ? "Automatic sync is active (click to turn off)"
+                : "Automatic sync is off (click to turn on)"
+            }
+            aria-label={syncEnabled ? "Synced" : "Sync off"}
+          >
+            <span className="watch-sync-dot" aria-hidden="true" />
+            <span className="watch-sync-label">{syncEnabled ? "Synced" : "Sync off"}</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="watch-ctrl watch-sync-btn disabled"
+            disabled
+            title="Spotify can't be synced"
+            aria-label="Spotify can't be synced"
+          >
+            <span className="watch-sync-dot disabled" aria-hidden="true" />
+            <span className="watch-sync-label">Spotify can&apos;t be synced</span>
+          </button>
+        )}
         <button
           type="button"
           className="watch-ctrl"
