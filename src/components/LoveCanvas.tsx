@@ -9,6 +9,7 @@ type Props = {
   room: Room;
   isActive: boolean;
   onClose: () => void;
+  watchActive?: boolean;
 };
 
 const DOODLE_COLORS = [
@@ -25,7 +26,7 @@ const DOODLE_COLORS = [
   { name: "Pure White", hex: "#ffffff" },
 ];
 
-export default function LoveCanvas({ room, isActive, onClose }: Props) {
+export default function LoveCanvas({ room, isActive, onClose, watchActive = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [tool, setTool] = useState<"pen" | "eraser">("pen");
   const [selectedColor, setSelectedColor] = useState(DOODLE_COLORS[0].hex);
@@ -232,7 +233,7 @@ export default function LoveCanvas({ room, isActive, onClose }: Props) {
       />
 
       {/* Floating Toolbar */}
-      <div className="love-canvas-toolbar" onClick={(e) => e.stopPropagation()}>
+      <div className={`love-canvas-toolbar ${watchActive ? "watch-layout" : ""}`} onClick={(e) => e.stopPropagation()}>
         {/* Tool Selector: Pen vs Eraser */}
         <div className="canvas-tools">
           <button

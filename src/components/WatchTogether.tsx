@@ -44,6 +44,7 @@ type Props = {
   partner?: any;
   micOn?: boolean;
   chatVisible?: boolean;
+  doodleActive?: boolean;
 };
 
 const ROMANTIC_SUGGESTIONS: { title: string; id: string; desc: string; type: MediaType }[] = [
@@ -257,6 +258,7 @@ export default function WatchTogether({
   selfName = "You",
   partner,
   chatVisible = false,
+  doodleActive = false,
 }: Props) {
   const [clock, setClock] = useState<SharedWatchClock | null>(null);
   const clockRef = useRef<SharedWatchClock | null>(null);
@@ -862,7 +864,7 @@ export default function WatchTogether({
   };
 
   const renderBrowser = () => (
-    <div className={`stage-with-faces watch-together-stage ${chatVisible ? "chat-open" : ""}`}>
+    <div className={`stage-with-faces watch-together-stage ${doodleActive ? "doodle-active" : ""} ${chatVisible ? "chat-open" : ""}`}>
       <div className="stage-with-faces-inner">
         <div className="stage-video-wrap watch-video-wrap watch-browse-wrap">
           <div className="watch-browse">
@@ -1036,7 +1038,7 @@ export default function WatchTogether({
   );
 
   const renderControls = () => {
-    if (!clock) return null;
+    if (!clock || doodleActive) return null;
     const isYouTube = clock.mediaType === "youtube";
 
     return (
@@ -1124,7 +1126,7 @@ export default function WatchTogether({
   // When video/music is loaded: render Full Stage layout
   if (clock?.videoId) {
     return (
-      <div className={`stage-with-faces watch-together-stage ${pickerModalOpen ? "browsing" : ""} ${chatVisible ? "chat-open" : ""}`}>
+      <div className={`stage-with-faces watch-together-stage ${doodleActive ? "doodle-active" : ""} ${pickerModalOpen ? "browsing" : ""} ${chatVisible ? "chat-open" : ""}`}>
         <div className="stage-with-faces-inner">
           <div className={`stage-video-wrap watch-video-wrap${pickerModalOpen ? " mini" : ""}`}>
             {isDucked && (

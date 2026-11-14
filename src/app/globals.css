@@ -3374,6 +3374,13 @@ button {
   vertical-align: bottom;
 }
 
+
+/* When Doodle is active, completely hide YouTube controls to avoid overlapping */
+.watch-together-stage.doodle-active .watch-controls,
+.doodle-active .watch-controls {
+  display: none !important;
+}
+
 .watch-controls {
   flex: none;
   display: flex;
@@ -4455,19 +4462,33 @@ button {
 
 .love-canvas-toolbar {
   position: absolute;
-  bottom: 110px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: calc(88px + env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: max-content;
+  max-width: calc(100vw - 32px);
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 10px 16px;
-  background: rgba(18, 9, 16, 0.85);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(18, 9, 16, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 999px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 46, 136, 0.2);
-  z-index: 36;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.65), 0 0 24px rgba(255, 46, 136, 0.25);
+  z-index: 45;
+  transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1), right 0.3s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.2s ease;
+}
+
+/* When YouTube Watch Together is active: center the doodle toolbar directly above the call controls dock in the YouTube video area */
+.love-canvas-toolbar.watch-layout {
+  left: 12px;
+  right: calc(clamp(280px, 26vw, 420px) + 24px);
+  margin: 0 auto;
+  bottom: calc(92px + env(safe-area-inset-bottom));
+  max-width: calc(100% - clamp(280px, 26vw, 420px) - 48px);
 }
 
 .canvas-tools {

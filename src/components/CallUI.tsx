@@ -462,6 +462,7 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
           partner={partner}
           micOn={micOn}
           chatVisible={chatVisible}
+          doodleActive={doodleActive}
         />
 
       {!watchActive && (
@@ -545,7 +546,7 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
         onReact={sendEmojiBurst}
       />
 
-      <LoveCanvas room={room} isActive={doodleActive} onClose={() => setDoodleActive(false)} />
+      <LoveCanvas room={room} isActive={doodleActive} onClose={() => setDoodleActive(false)} watchActive={watchActive} />
       <MomentsScrapbook isOpen={scrapbookOpen} onClose={() => setScrapbookOpen(false)} />
 
       {/* Floating burst layer for hearts & emoji bursts */}
