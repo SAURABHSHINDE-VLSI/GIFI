@@ -3,6 +3,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
+  height: var(--dock-height, 82px);
   border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: linear-gradient(180deg, rgba(38, 14, 28, 0.88), rgba(15, 6, 12, 0.94));
@@ -202,5 +203,36 @@
   .iconBtn,
   .syncPill {
     transition: none !important;
+  }
+}
+
+@media (max-width: 580px) {
+  .watchPill {
+    padding: 6px 10px;
+    gap: 4px;
+    height: auto;
+    min-height: 56px;
+  }
+
+  .timeDisplay,
+  .divider:nth-of-type(1) {
+    display: none;
+  }
+
+  .iconBtn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .primaryBtn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .syncPill {
+    height: 36px;
+    min-height: 36px;
+    padding: 0 8px;
+    font-size: 11px;
   }
 }

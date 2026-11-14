@@ -13,6 +13,9 @@
   --line: rgba(253, 242, 238, 0.12);
   --glass: rgba(255, 255, 255, 0.055);
   --shadow: 0 34px 90px rgba(0, 0, 0, 0.55);
+  --dock-bottom: calc(10px + env(safe-area-inset-bottom));
+  --dock-height: 82px;
+  --dock-half-width: 284px;
 }
 
 *,
@@ -1130,7 +1133,7 @@ button {
   --tile-width: clamp(92px, 24vw, 178px);
   position: absolute;
   left: calc(100% - var(--tile-width) - 18px);
-  bottom: calc(88px + env(safe-area-inset-bottom));
+  bottom: calc(var(--dock-bottom) + var(--dock-height) + 16px);
   width: var(--tile-width);
   aspect-ratio: 3 / 4;
   border-radius: 16px;
@@ -1407,7 +1410,7 @@ button {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: calc(10px + env(safe-area-inset-bottom));
+  bottom: var(--dock-bottom);
   z-index: 40;
   display: flex;
   align-items: center;
@@ -1415,21 +1418,37 @@ button {
   gap: 12px;
   padding: 0 16px;
   pointer-events: none;
-  transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1), right 0.3s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.2s ease;
+  transition: bottom 0.2s ease;
 }
 
-/* When YouTube Watch Together is active: center the call dock directly in the middle of the YouTube video space */
-.call-controls.watch-layout {
-  left: 12px;
-  right: calc(clamp(280px, 26vw, 420px) + 24px);
-  bottom: calc(10px + env(safe-area-inset-bottom));
+.watch-controls-wrap {
+  position: absolute;
+  z-index: 45;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
   justify-content: center;
+  transition: bottom 0.2s ease;
 }
 
-@media (max-width: 768px) {
-  .call-controls.watch-layout {
+/* Wide screens (>= 1550px): watch pill sits to the right on the same baseline with min 16px gap */
+@media (min-width: 1550px) {
+  .watch-controls-wrap {
+    bottom: var(--dock-bottom);
+    left: calc(50% + var(--dock-half-width) + 16px);
+    right: auto;
+    height: var(--dock-height);
+  }
+}
+
+/* Narrower screens (< 1550px): watch pill moves ABOVE the main bar, centered, with a 12px gap */
+@media (max-width: 1549px) {
+  .watch-controls-wrap {
+    bottom: calc(var(--dock-bottom) + var(--dock-height) + 12px);
     left: 0;
     right: 0;
+    height: auto;
+    justify-content: center;
   }
 }
 
@@ -1500,6 +1519,8 @@ button {
   align-items: center;
   gap: 12px;
   padding: 8px 16px 8px;
+  height: var(--dock-height);
+  box-sizing: border-box;
   border-radius: 32px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: linear-gradient(180deg, rgba(38, 14, 28, 0.88), rgba(15, 6, 12, 0.94));
@@ -2251,8 +2272,14 @@ button {
   position: absolute;
   inset: 0;
   display: flex;
-  padding: calc(56px + env(safe-area-inset-top)) 16px calc(92px + env(safe-area-inset-bottom)) 16px;
+  padding: calc(56px + env(safe-area-inset-top)) 16px calc(var(--dock-bottom) + var(--dock-height) + 16px) 16px;
   overflow: hidden;
+}
+
+@media (max-width: 1549px) {
+  .stage-with-faces {
+    padding-bottom: calc(var(--dock-bottom) + var(--dock-height) + 12px + var(--dock-height) + 16px);
+  }
 }
 
 .stage-with-faces-inner {
