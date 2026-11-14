@@ -63,9 +63,18 @@ type Options = {
   onStatus?: (status: GestureStatus) => void;
 };
 
-const WASM_URL = "/mediapipe/wasm";
-const HAND_MODEL_URL = "/mediapipe/hand_landmarker.task";
-const FACE_MODEL_URL = "/mediapipe/face_landmarker.task";
+// MediaPipe vision assets are fetched from a CDN rather than bundled as static
+// files: the wasm binaries plus landmarker models total ~41 MB, which is over
+// the site upload limit. Point NEXT_PUBLIC_MEDIAPIPE_WASM_BASE and
+// NEXT_PUBLIC_MEDIAPIPE_MODEL_BASE at self-hosted copies to load them locally.
+const WASM_URL =
+  process.env.NEXT_PUBLIC_MEDIAPIPE_WASM_BASE ??
+  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.2.3/wasm";
+const MODEL_BASE =
+  process.env.NEXT_PUBLIC_MEDIAPIPE_MODEL_BASE ??
+  "https://storage.googleapis.com/mediapipe-models";
+const HAND_MODEL_URL = `${MODEL_BASE}/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`;
+const FACE_MODEL_URL = `${MODEL_BASE}/face_landmarker/face_landmarker/float16/1/face_landmarker.task`;
 
 // Fast 140ms detection interval for swift responsiveness
 const DETECT_INTERVAL = 140;

@@ -15,15 +15,20 @@ function getLiveKitOrigins(): string {
 
 const livekitOrigins = getLiveKitOrigins();
 
+// MediaPipe gesture detection loads its wasm loader scripts and landmarker
+// models from CDNs, so those hosts must be reachable under the CSP.
+const mediapipeScriptOrigins = "https://cdn.jsdelivr.net";
+const mediapipeConnectOrigins = "https://cdn.jsdelivr.net https://storage.googleapis.com";
+
 const isDev = process.env.NODE_ENV === "development";
-const scriptSrc = `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ""}`;
+const scriptSrc = `script-src 'self' ${mediapipeScriptOrigins} 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ""}`;
 
 const cspHeader = [
   "default-src 'self'",
-  `connect-src 'self' ${livekitOrigins}`,
+  `connect-src 'self' ${livekitOrigins} ${mediapipeConnectOrigins}`,
   "media-src 'self' blob:",
   "img-src 'self' data: blob: https://i.ytimg.com https://i.scdn.co",
-  "worker-src 'self' blob:",
+  `worker-src 'self' blob: ${mediapipeScriptOrigins}`,
   "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com",
   scriptSrc,
   "style-src 'self' 'unsafe-inline'",
