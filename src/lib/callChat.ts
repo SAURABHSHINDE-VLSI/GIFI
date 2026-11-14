@@ -40,6 +40,7 @@ export type CallChatHandles = {
   soundEnabled: boolean;
   popups: PopupMessage[];
   clearPopups: () => void;
+  dismissPopup: (id: string) => void;
 };
 
 const CHUNK_SIZE = 6000;
@@ -155,20 +156,22 @@ export function useCallChat(room: Room, selfName: string): CallChatHandles {
         id,
         kind === "delivered"
           ? { deliveredAt: existing.deliveredAt ?? at, seenAt: existing.seenAt }
-          : { deliveredAt: existing.deliveredAt, seenAt: at },
+          : { deliveredAt: existing.deliveredAt ?? at, seenAt: at },
       );
       setItems((current) =>
         current.map((row) =>
           row.id === id
             ? kind === "delivered"
               ? { ...row, delivered: true }
-              : { ...row, seen: true, seenAt: at }
+              : { ...row, delivered: true, seen: true, seenAt: at }
             : row,
         ),
       );
     },
     [],
   );
+
+
 
   const enqueuePopup = useCallback(
     (item: PopupMessage) => {
@@ -177,9 +180,18 @@ export function useCallChat(room: Room, selfName: string): CallChatHandles {
         return [...pruned, item].slice(-3);
       });
       queueMicrotask(() => playTone(520, 0.05, 0.16));
+
+      // Auto disappear after 5 seconds
+      setTimeout(() => {
+        setPopups((current) => current.filter((p) => p.id !== item.id));
+      }, 5000);
     },
     [playTone],
   );
+
+  const dismissPopup = useCallback((id: string) => {
+    setPopups((current) => current.filter((p) => p.id !== id));
+  }, []);
 
   const getReceipt = useCallback(
     (id: string): ChatReceipt | undefined => receipts.current.get(id),
@@ -249,6 +261,7 @@ export function useCallChat(room: Room, selfName: string): CallChatHandles {
     },
     [push, send, selfName, playTone],
   );
+
 
   useEffect(() => {
     const onData = (payload: Uint8Array) => {
@@ -417,5 +430,6 @@ export function useCallChat(room: Room, selfName: string): CallChatHandles {
     soundEnabled,
     popups,
     clearPopups,
+    dismissPopup,
   };
 }

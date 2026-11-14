@@ -10,13 +10,12 @@ type Props = {
   items: ChatItem[];
   partnerName?: string;
   onSend: (text: string) => void;
-  onScreenshot?: () => void;
   onMarkSeen?: (id: string) => void;
-  getReceipt?: (id: string) => { delivered?: boolean; seen?: boolean; seenAt?: number } | undefined;
   soundOn?: boolean;
-  onToggleSound?: () => void;
   onOpen: () => void;
   onClose?: () => void;
+  onDismissPopup?: (id: string) => void;
+  onReact?: (emoji: string) => void;
 };
 
 function timeOf(at: number) {
@@ -74,6 +73,8 @@ export default function CallChat({
   soundOn = true,
   onOpen,
   onClose,
+  onDismissPopup,
+  onReact,
 }: Props) {
   const [draft, setDraft] = useState("");
   const list = useRef<HTMLDivElement | null>(null);
@@ -85,6 +86,16 @@ export default function CallChat({
     },
     [onMarkSeen],
   );
+
+  // Automatically mark partner messages as seen when the chat dialog is open
+  useEffect(() => {
+    if (!visible) return;
+    for (const item of items) {
+      if (!item.mine && !item.seen) {
+        onMarkSeen?.(item.id);
+      }
+    }
+  }, [visible, items, onMarkSeen]);
 
   useEffect(() => {
     const element = list.current;
@@ -111,7 +122,21 @@ export default function CallChat({
               <div key={popup.id} className="popup-bubble">
                 <div className="popup-head">
                   <span className="popup-from">{popup.from}</span>
-                  <span className="popup-time">{popupLabel(popup.at)}</span>
+                  <div className="popup-meta-right">
+                    <span className="popup-time">{popupLabel(popup.at)}</span>
+                    <button
+                      type="button"
+                      className="popup-close-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDismissPopup?.(popup.id);
+                      }}
+                      aria-label="Dismiss notification"
+                      title="Dismiss"
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
                 <p className="popup-text">{popup.text}</p>
               </div>
@@ -181,7 +206,12 @@ export default function CallChat({
 
           <div className="call-chat-emoji">
             {ROMANTIC_EMOJIS.map((emoji) => (
-              <button key={emoji} type="button" onClick={() => onSend(emoji)}>
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => onReact?.(emoji)}
+                title={`Send ${emoji} burst`}
+              >
                 {emoji}
               </button>
             ))}
