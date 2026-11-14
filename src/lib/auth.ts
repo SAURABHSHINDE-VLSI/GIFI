@@ -1,10 +1,14 @@
 import type { D1Database } from "./d1";
 
-export const SESSION_COOKIE = "herz_session";
+export const SESSION_COOKIE = "__Host-herz_session";
 const SESSION_DAYS = 30;
 // workerd rejects PBKDF2 above 100k iterations; stay at the platform ceiling.
 const ITERATIONS = 100_000;
 const encoder = new TextEncoder();
+
+/** Fixed dummy hash to equalize login response time when a username does not exist. */
+export const DUMMY_PASSWORD_HASH =
+  "pbkdf2$100000$AQEBAQEBAQEBAQEBAQEBAQ==$AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=";
 
 export type UserRow = {
   id: string;
@@ -84,6 +88,12 @@ export function readCookie(request: Request, name: string) {
     const [key, ...rest] = part.trim().split("=");
     if (key === name) return rest.join("=");
   }
+  if (name === SESSION_COOKIE) {
+    for (const part of header.split(";")) {
+      const [key, ...rest] = part.trim().split("=");
+      if (key === "herz_session") return rest.join("=");
+    }
+  }
   return null;
 }
 
@@ -105,6 +115,19 @@ export async function createSession(db: D1Database, userId: string) {
     )
     .bind(await sha256(token), userId, now, now + SESSION_DAYS * 24 * 60 * 60 * 1000)
     .run();
+
+  // Opportunistic cleanup of expired sessions and invites (~10% chance)
+  if (Math.random() < 0.1) {
+    try {
+      await db.batch([
+        db.prepare("DELETE FROM sessions WHERE expires_at <= ?").bind(now),
+        db.prepare("DELETE FROM invites WHERE expires_at <= ?").bind(now),
+      ]);
+    } catch {
+      // Non-fatal: cleanup is opportunistic.
+    }
+  }
+
   return token;
 }
 
@@ -124,15 +147,17 @@ export async function currentUser(db: D1Database, request: Request): Promise<Use
 
   if (!row) return null;
 
-  // Keep last_seen_at fresh on every authenticated hit.
-  try {
-    await db
-      .prepare("UPDATE users SET last_seen_at = ? WHERE id = ?")
-      .bind(now, row.id)
-      .run();
-    row.last_seen_at = now;
-  } catch {
-    // Non-fatal: last_seen_at is best-effort.
+  // Only update last_seen_at if the stored value is older than 60 seconds, avoiding D1 write on every hit.
+  if (!row.last_seen_at || now - row.last_seen_at > 60_000) {
+    try {
+      await db
+        .prepare("UPDATE users SET last_seen_at = ? WHERE id = ?")
+        .bind(now, row.id)
+        .run();
+      row.last_seen_at = now;
+    } catch {
+      // Non-fatal: last_seen_at is best-effort.
+    }
   }
 
   return row;

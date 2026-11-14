@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/d1";
 import { createSession, hashPassword, sessionCookie } from "@/lib/auth";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkSameOrigin } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const originCheck = checkSameOrigin(request);
+  if (originCheck) return originCheck;
   let body: { username?: string; displayName?: string; password?: string };
   try {
     body = await request.json();
@@ -24,16 +28,29 @@ export async function POST(request: Request) {
     );
   }
   if (!displayName) {
-    return NextResponse.json({ message: "Tell us what she calls you." }, { status: 400 });
+    return NextResponse.json({ message: "Tell us your name." }, { status: 400 });
   }
-  if (password.length < 6) {
+  if (password.length < 8) {
     return NextResponse.json(
-      { message: "Password needs at least 6 characters." },
+      { message: "Password needs at least 8 characters." },
       { status: 400 },
     );
   }
 
   const db = await getDb();
+
+  const ip = getClientIp(request);
+  const rateLimitKey = `signup:${ip}`;
+  const rateLimit = await checkRateLimit(db, rateLimitKey, 10, 15 * 60);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { message: "Too many sign-up attempts. Please wait a few minutes and try again." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.retryAfterSeconds ?? 60) },
+      },
+    );
+  }
 
   const existing = await db
     .prepare("SELECT id FROM users WHERE username = ?")

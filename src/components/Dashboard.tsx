@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "./Icons";
+import MomentsScrapbook from "./MomentsScrapbook";
 import { copyText, initialOf } from "@/lib/ui";
 
 type Me = {
@@ -20,6 +21,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmUnpair, setConfirmUnpair] = useState(false);
+  const [scrapbookOpen, setScrapbookOpen] = useState(false);
 
   async function load() {
     const response = await fetch("/api/me");
@@ -27,7 +29,8 @@ export default function Dashboard() {
       router.replace("/");
       return;
     }
-    setMe(await response.json());
+    const data: Me = await response.json();
+    setMe(data);
     setLoading(false);
   }
 
@@ -130,32 +133,46 @@ export default function Dashboard() {
 
   return (
     <main className="home">
-      <section className="home-card wide">
+      <section className="home-card wide clean-dashboard">
         <div className="brand compact">
           <div className="brand-heart">
             <Icon name="heart" size={18} />
           </div>
           <h1>HERZ</h1>
-          <p>your private space</p>
+          <p>your private sanctuary</p>
         </div>
 
         {error && <p className="form-error">{error}</p>}
 
         {me?.user.paired && me.partner ? (
           <>
-            <div className="partner">
-              <div className="avatar small partner-avatar">{initialOf(me.partner.displayName)}</div>
-              <div>
-                <div className="partner-name">{me.partner.displayName}</div>
-                <div className="partner-sub">connected with you</div>
-                <div className="partner-lastseen">{me.partner.lastSeen}</div>
+            <div className="partner-clean-card">
+              <div className="avatar partner-clean-avatar">
+                {initialOf(me.partner.displayName)}
+                <span className="partner-online-dot" />
+              </div>
+              <div className="partner-clean-info">
+                <div className="partner-clean-name">{me.partner.displayName}</div>
+                <div className="partner-clean-sub">connected with you</div>
+                <div className="partner-clean-lastseen">{me.partner.lastSeen}</div>
               </div>
             </div>
 
-            <button className="btn btn-primary" onClick={() => router.push("/app/call")}>
-              <Icon name="heart" size={16} />
-              Start our call
-            </button>
+            <div className="dashboard-clean-actions">
+              <button className="btn btn-primary btn-call-hero" onClick={() => router.push("/app/call")}>
+                <Icon name="heart" size={18} />
+                <span>Start our call</span>
+              </button>
+
+              <button
+                className="btn btn-outline btn-moments-clean"
+                type="button"
+                onClick={() => setScrapbookOpen(true)}
+              >
+                <Icon name="gallery" size={16} />
+                <span>Moments Scrapbook</span>
+              </button>
+            </div>
 
             <p className="hint">private room · only the two of you can enter</p>
 
@@ -186,10 +203,10 @@ export default function Dashboard() {
               </div>
             )}
 
-            <div className="divider">or she sends you one</div>
+            <div className="divider">or your partner sends you one</div>
 
             <div className="field">
-              <label htmlFor="pair-code">her code</label>
+              <label htmlFor="pair-code">partner's code</label>
               <input
                 id="pair-code"
                 value={joinCode}
@@ -206,14 +223,12 @@ export default function Dashboard() {
               onClick={joinWithCode}
               disabled={busy || joinCode.trim().length < 5}
             >
-              Connect with her
+              Connect with your partner
             </button>
 
             <p className="hint">codes work once and expire in 7 days</p>
           </>
         )}
-
-        <p className="me-lastseen">{me?.user.lastSeen ?? ""}</p>
 
         <button className="signout" type="button" onClick={signOut}>
           sign out
@@ -221,6 +236,8 @@ export default function Dashboard() {
 
         {notice && <div className="toast">{notice}</div>}
       </section>
+
+      <MomentsScrapbook isOpen={scrapbookOpen} onClose={() => setScrapbookOpen(false)} />
     </main>
   );
 }

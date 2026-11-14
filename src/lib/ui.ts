@@ -10,6 +10,30 @@ export function formatDuration(totalSeconds: number) {
   return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`;
 }
 
+export function formatTime(timestamp: number | string | Date): string {
+  try {
+    const d = new Date(timestamp);
+    const now = new Date();
+    const isToday =
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear();
+
+    const hour = d.getHours() % 12 || 12;
+    const mins = String(d.getMinutes()).padStart(2, "0");
+    const ampm = d.getHours() < 12 ? "AM" : "PM";
+    const timeStr = `${hour}:${mins} ${ampm}`;
+
+    if (isToday) {
+      return `Today, ${timeStr}`;
+    }
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return `${months[d.getMonth()]} ${d.getDate()}, ${timeStr}`;
+  } catch {
+    return "";
+  }
+}
+
 export async function copyText(text: string) {
   try {
     await navigator.clipboard.writeText(text);

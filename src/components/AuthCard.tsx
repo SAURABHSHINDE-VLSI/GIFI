@@ -98,7 +98,7 @@ export default function AuthCard() {
                 id="displayName"
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
-                placeholder="what she calls you"
+                placeholder="your name"
                 maxLength={24}
                 autoComplete="nickname"
               />
@@ -126,7 +126,7 @@ export default function AuthCard() {
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder={mode === "signup" ? "at least 6 characters" : "your password"}
+              placeholder={mode === "signup" ? "at least 8 characters" : "your password"}
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
             />
           </div>

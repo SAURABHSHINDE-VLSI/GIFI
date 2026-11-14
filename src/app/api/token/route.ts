@@ -1,15 +1,30 @@
 import { NextResponse } from "next/server";
 import { AccessToken } from "livekit-server-sdk";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDb } from "@/lib/d1";
 import { currentUser } from "@/lib/auth";
+import { checkSameOrigin } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  const apiKey = process.env.LIVEKIT_API_KEY;
-  const apiSecret = process.env.LIVEKIT_API_SECRET;
-  const url = process.env.LIVEKIT_URL;
+  const originCheck = checkSameOrigin(request);
+  if (originCheck) return originCheck;
+
+  let cfEnv: Record<string, string | undefined> = {};
+  try {
+    const ctx = await getCloudflareContext({ async: true });
+    if (ctx && ctx.env) {
+      cfEnv = ctx.env as Record<string, string | undefined>;
+    }
+  } catch {
+    // Local / standard Node runtime
+  }
+
+  const apiKey = process.env.LIVEKIT_API_KEY || cfEnv.LIVEKIT_API_KEY;
+  const apiSecret = process.env.LIVEKIT_API_SECRET || cfEnv.LIVEKIT_API_SECRET;
+  const url = process.env.LIVEKIT_URL || cfEnv.LIVEKIT_URL;
 
   if (!apiKey || !apiSecret || !url) {
     return NextResponse.json(

@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/d1";
-import { createSession, sessionCookie, verifyPassword } from "@/lib/auth";
+import { createSession, DUMMY_PASSWORD_HASH, sessionCookie, verifyPassword } from "@/lib/auth";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkSameOrigin } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const originCheck = checkSameOrigin(request);
+  if (originCheck) return originCheck;
   let body: { username?: string; password?: string };
   try {
     body = await request.json();
@@ -20,6 +24,20 @@ export async function POST(request: Request) {
   if (!username || !password) return failure;
 
   const db = await getDb();
+
+  const ip = getClientIp(request);
+  const rateLimitKey = `login:${username}:${ip}`;
+  const rateLimit = await checkRateLimit(db, rateLimitKey, 10, 15 * 60);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { message: "Too many login attempts. Please wait a few minutes and try again." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.retryAfterSeconds ?? 60) },
+      },
+    );
+  }
+
   const user = await db
     .prepare(
       "SELECT id, username, display_name, password_hash, pair_id FROM users WHERE username = ?",
@@ -33,17 +51,11 @@ export async function POST(request: Request) {
       pair_id: string | null;
     }>();
 
-  if (!user) return failure;
+  // If user not found, run verifyPassword against fixed dummy hash so response timing is identical.
+  const hashToVerify = user ? user.password_hash : DUMMY_PASSWORD_HASH;
+  const valid = await verifyPassword(password, hashToVerify);
 
-  const trimmed = password.trim();
-  let valid = await verifyPassword(password, user.password_hash);
-  if (!valid && trimmed !== password) {
-    valid = await verifyPassword(trimmed, user.password_hash);
-  }
-  if (!valid) {
-    valid = await verifyPassword(trimmed.toLowerCase(), user.password_hash);
-  }
-  if (!valid) return failure;
+  if (!user || !valid) return failure;
 
   const token = await createSession(db, user.id);
 
