@@ -112,47 +112,49 @@ export default function WatchControls({
 
           <div className={styles.divider} role="separator" aria-orientation="vertical" />
 
-          <span className={styles.timeDisplay}>{formatWatchTime(currentTime)}</span>
+          <div className={styles.metaGroup}>
+            <span className={styles.timeDisplay}>{formatWatchTime(currentTime)}</span>
 
-          <div className={styles.divider} role="separator" aria-orientation="vertical" />
+            <div className={styles.divider} role="separator" aria-orientation="vertical" />
 
-          <button
-            type="button"
-            className={`${styles.syncPill} ${syncOn ? styles.syncOn : styles.syncOff}`}
-            onClick={onSyncToggle}
-            aria-pressed={syncOn}
-            aria-label={syncOn ? "Synced" : "Sync off"}
-            title={
-              syncOn
-                ? "Automatic sync is active (click to turn off)"
-                : "Automatic sync is off (click to turn on)"
-            }
-          >
-            <span className={styles.syncDot} aria-hidden="true" />
-            <span className={styles.syncLabel}>{syncOn ? "Synced" : "Sync off"}</span>
-          </button>
-
-          {onBrowse && (
             <button
               type="button"
-              className={styles.iconBtn}
-              onClick={onBrowse}
-              aria-label="Minimise and browse"
-              title="Minimise & browse"
+              className={`${styles.syncPill} ${syncOn ? styles.syncOn : styles.syncOff}`}
+              onClick={onSyncToggle}
+              aria-pressed={syncOn}
+              aria-label={syncOn ? "Synced" : "Sync off"}
+              title={
+                syncOn
+                  ? "Automatic sync is active (click to turn off)"
+                  : "Automatic sync is off (click to turn on)"
+              }
             >
-              <Icon name="pip" size={20} />
+              <span className={styles.syncDot} aria-hidden="true" />
+              <span className={styles.syncLabel}>{syncOn ? "Synced" : "Sync off"}</span>
             </button>
-          )}
 
-          <button
-            type="button"
-            className={`${styles.iconBtn} ${styles.closeBtn}`}
-            onClick={onClose}
-            aria-label="Stop watching"
-            title="Stop watching"
-          >
-            <Icon name="close" size={20} />
-          </button>
+            {onBrowse && (
+              <button
+                type="button"
+                className={styles.iconBtn}
+                onClick={onBrowse}
+                aria-label="Minimise and browse"
+                title="Minimise & browse"
+              >
+                <Icon name="pip" size={20} />
+              </button>
+            )}
+
+            <button
+              type="button"
+              className={`${styles.iconBtn} ${styles.closeBtn}`}
+              onClick={onClose}
+              aria-label="Stop watching"
+              title="Stop watching"
+            >
+              <Icon name="close" size={20} />
+            </button>
+          </div>
         </>
       ) : (
         <>
