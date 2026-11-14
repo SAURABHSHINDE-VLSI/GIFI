@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   RoomAudioRenderer,
+  useAudioPlayback,
   useConnectionState,
   useLocalParticipant,
   useRemoteParticipants,
@@ -42,6 +43,24 @@ type Props = {
 export default function CallUI({ selfName, partnerName, onLeave }: Props) {
   const room = useRoomContext();
   const connection = useConnectionState();
+  const { canPlayAudio, startAudio } = useAudioPlayback(room);
+
+  // Enable audio playback automatically on any user gesture in the call
+  useEffect(() => {
+    if (canPlayAudio) return;
+    const unlockAudio = () => {
+      startAudio().catch(() => undefined);
+      room.startAudio().catch(() => undefined);
+    };
+    window.addEventListener("click", unlockAudio, { once: true });
+    window.addEventListener("keydown", unlockAudio, { once: true });
+    window.addEventListener("touchstart", unlockAudio, { once: true });
+    return () => {
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+  }, [canPlayAudio, room, startAudio]);
   const {
     cameraTrack: localCamera,
     isCameraEnabled,
@@ -699,8 +718,6 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
           saveAutoPipPref(enabled);
         }}
       />
-      {PipPortal}
-
       {/* Floating burst layer for hearts & emoji bursts */}
       <div className="burst-layer" aria-hidden="true">
         {bursts.map((heart) => (
@@ -736,6 +753,27 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
 
       {notice && <div className="toast">{notice}</div>}
       {gestureFlash && <div className="gesture-toast" aria-live="polite">{gestureFlash}</div>}
+      {!canPlayAudio && (
+        <button
+          type="button"
+          className="toast audio-permission-toast"
+          onClick={() => {
+            startAudio().catch(() => undefined);
+            room.startAudio().catch(() => undefined);
+          }}
+          style={{
+            cursor: "pointer",
+            pointerEvents: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+          aria-label="Tap to enable sound"
+        >
+          <Icon name="mic" size={16} />
+          <span>Tap to enable sound</span>
+        </button>
+      )}
 
       {PipPortal}
 
