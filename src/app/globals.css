@@ -15,7 +15,6 @@
   --shadow: 0 34px 90px rgba(0, 0, 0, 0.55);
   --dock-bottom: calc(10px + env(safe-area-inset-bottom));
   --dock-height: 82px;
-  --dock-half-width: 284px;
 }
 
 *,
@@ -1758,10 +1757,6 @@ button {
     border-radius: 20px;
   }
 
-  .call-controls {
-    padding-inline: 10px;
-  }
-
   .dock {
     gap: 4px;
     padding: 7px 10px 5px;
@@ -3424,7 +3419,10 @@ button {
 /* When Doodle is active or browsing, completely hide YouTube controls to avoid overlapping */
 .watch-together-stage.doodle-active .watch-controls-wrap,
 .doodle-active .watch-controls-wrap,
-.watch-together-stage.browsing .watch-controls-wrap {
+.watch-together-stage.browsing .watch-controls-wrap,
+.watch-together-stage.doodle-active .watch-pill-wrapper,
+.doodle-active .watch-pill-wrapper,
+.watch-together-stage.browsing .watch-pill-wrapper {
   display: none !important;
 }
 
