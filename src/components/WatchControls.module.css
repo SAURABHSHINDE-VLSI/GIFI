@@ -1,0 +1,206 @@
+.watchPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, rgba(38, 14, 28, 0.88), rgba(15, 6, 12, 0.94));
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  pointer-events: auto;
+  user-select: none;
+  z-index: 45;
+  box-sizing: border-box;
+}
+
+.playbackGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.iconBtn {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.iconBtn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
+}
+
+.iconBtn:active {
+  transform: scale(0.94);
+}
+
+.iconBtn:focus-visible {
+  outline: 2px solid #ff709c;
+  outline-offset: 2px;
+}
+
+.primaryBtn {
+  width: 52px;
+  height: 52px;
+  border: none;
+  background: linear-gradient(135deg, #e8608a, #c8346a);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(200, 52, 106, 0.45);
+}
+
+.primaryBtn:hover {
+  background: linear-gradient(135deg, #f0709a, #d13d76);
+  transform: translateY(-1px);
+}
+
+.divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.14);
+  margin: 0 4px;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.timeDisplay {
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 52px;
+  text-align: center;
+  color: var(--muted, rgba(255, 255, 255, 0.75));
+  letter-spacing: 0.02em;
+  padding: 0 4px;
+  flex: none;
+}
+
+.syncPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+  box-sizing: border-box;
+}
+
+.syncPill:focus-visible {
+  outline: 2px solid #5fd08a;
+  outline-offset: 2px;
+}
+
+.syncOn {
+  background: #5fd08a;
+  border: 1px solid #4dbd76;
+  color: #0d2818;
+  box-shadow: 0 0 12px rgba(95, 208, 138, 0.35);
+}
+
+.syncOn:hover {
+  background: #6fe09a;
+  border-color: #5fd08a;
+}
+
+.syncOff {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.syncOff:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.syncDisabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.syncDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #0d2818;
+  box-shadow: 0 0 4px rgba(13, 40, 24, 0.6);
+  animation: syncDotPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  flex-shrink: 0;
+}
+
+.syncOff .syncDot {
+  background: #888;
+  box-shadow: none;
+  animation: none;
+}
+
+.syncDotDisabled {
+  background: #666;
+  box-shadow: none;
+  animation: none;
+}
+
+.syncLabel {
+  white-space: nowrap;
+}
+
+.closeBtn {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.closeBtn:hover,
+.closeBtn:focus-visible {
+  background: rgba(239, 68, 68, 0.28);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #ff8888;
+}
+
+.spotifyNote {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+@keyframes syncDotPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .syncDot {
+    animation: none !important;
+  }
+  .iconBtn,
+  .syncPill {
+    transition: none !important;
+  }
+}

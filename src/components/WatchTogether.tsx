@@ -10,6 +10,7 @@ import { serverNow, resyncServerTime } from "@/lib/serverTime";
 import { decideSync, projectPosition } from "@/lib/watchSync";
 type PeerWatchState = Parameters<typeof decideSync>[0];
 import { Icon } from "./Icons";
+import WatchControls from "./WatchControls";
 import {
   buildSpotifyEmbedUrl,
   buildYouTubeEmbedUrl,
@@ -1143,115 +1144,31 @@ export default function WatchTogether({
     const isYouTube = clock.mediaType === "youtube";
 
     return (
-      <div className="watch-controls" role="group" aria-label="Playback controls">
-        {isYouTube && (
-          <button
-            type="button"
-            className="watch-ctrl"
-            onClick={() => skipAdjacent(-1)}
-            title="Previous video"
-            aria-label="Previous video"
-          >
-            <Icon name="skip-back" size={18} />
-          </button>
-        )}
-        {isYouTube ? (
-          <>
-            <button
-              type="button"
-              className="watch-ctrl"
-              onClick={() => seekBy(-10)}
-              title="Back 10 seconds"
-              aria-label="Back 10 seconds"
-            >
-              <Icon name="replay-10" size={20} />
-            </button>
-            <button
-              type="button"
-              className="watch-ctrl primary"
-              onClick={togglePlay}
-              title={clock.isPlaying ? "Pause" : "Play"}
-              aria-label={clock.isPlaying ? "Pause" : "Play"}
-            >
-              <Icon name={clock.isPlaying ? "pause" : "play"} size={20} />
-            </button>
-            <button
-              type="button"
-              className="watch-ctrl"
-              onClick={() => seekBy(10)}
-              title="Forward 10 seconds"
-              aria-label="Forward 10 seconds"
-            >
-              <Icon name="forward-10" size={20} />
-            </button>
-          </>
-        ) : (
-          <span className="watch-ctrl-note">Same track on both screens · use Spotify&apos;s own controls</span>
-        )}
-        {isYouTube && (
-          <button
-            type="button"
-            className="watch-ctrl"
-            onClick={() => skipAdjacent(1)}
-            title="Next video"
-            aria-label="Next video"
-          >
-            <Icon name="skip-forward" size={18} />
-          </button>
-        )}
-        <span className="watch-ctrl-time">{formatClockTime(displayTime)}</span>
-        {isYouTube ? (
-          <button
-            type="button"
-            className={`watch-ctrl watch-sync-btn ${syncEnabled ? "synced" : "off"}`}
-            onClick={() => {
-              const next = !syncEnabled;
-              onSyncChange?.(next);
-              if (next) {
-                resyncVideo();
-              }
-            }}
-            aria-pressed={syncEnabled}
-            title={
-              syncEnabled
-                ? "Automatic sync is active (click to turn off)"
-                : "Automatic sync is off (click to turn on)"
-            }
-            aria-label={syncEnabled ? "Synced" : "Sync off"}
-          >
-            <span className="watch-sync-dot" aria-hidden="true" />
-            <span className="watch-sync-label">{syncEnabled ? "Synced" : "Sync off"}</span>
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="watch-ctrl watch-sync-btn disabled"
-            disabled
-            title="Spotify can't be synced"
-            aria-label="Spotify can't be synced"
-          >
-            <span className="watch-sync-dot disabled" aria-hidden="true" />
-            <span className="watch-sync-label">Spotify can&apos;t be synced</span>
-          </button>
-        )}
-        <button
-          type="button"
-          className="watch-ctrl"
-          onClick={() => setPickerModalOpen(true)}
-          title="Minimise & browse"
-          aria-label="Minimise and browse"
-        >
-          <Icon name="pip" size={18} />
-        </button>
-        <button
-          type="button"
-          className="watch-ctrl danger"
-          onClick={() => closePlayer(true)}
-          title="Stop watching"
-          aria-label="Stop watching"
-        >
-          <Icon name="close" size={18} />
-        </button>
+      <div className="watch-controls-wrap">
+        <WatchControls
+          isYouTube={isYouTube}
+          isPlaying={clock.isPlaying}
+          currentTime={displayTime}
+          syncOn={syncEnabled}
+          onPrev={isYouTube ? () => skipAdjacent(-1) : undefined}
+          onNext={isYouTube ? () => skipAdjacent(1) : undefined}
+          onRewind10={isYouTube ? () => seekBy(-10) : undefined}
+          onForward10={isYouTube ? () => seekBy(10) : undefined}
+          onPlayPause={isYouTube ? togglePlay : undefined}
+          onSyncToggle={
+            isYouTube
+              ? () => {
+                  const next = !syncEnabled;
+                  onSyncChange?.(next);
+                  if (next) {
+                    resyncVideo();
+                  }
+                }
+              : undefined
+          }
+          onBrowse={isYouTube ? () => setPickerModalOpen(true) : undefined}
+          onClose={() => closePlayer(true)}
+        />
       </div>
     );
   };
