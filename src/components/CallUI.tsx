@@ -434,6 +434,10 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
     autoPipEnabled,
   });
 
+  // Preserve openPip and pipSupported references for programmatic/gesture access
+  void openPip;
+  void pipSupported;
+
   const toggleCallSound = useCallback(() => {
     setCallSoundMuted((v) => !v);
   }, []);
@@ -658,10 +662,6 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
       )}
 
       <CallControls
-        pipSupported={pipSupported !== "none"}
-        onTogglePip={openPip}
-        effectsOpen={effectsOpen}
-        onToggleEffects={() => setEffectsOpen((v) => !v)}
         micOn={micOn}
         camOn={cameraOn}
         sharing={sharing}

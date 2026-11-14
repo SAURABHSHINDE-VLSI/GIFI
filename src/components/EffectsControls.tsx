@@ -106,32 +106,36 @@ export default function EffectsControls({
       </div>
 
       {typeof autoPipEnabled === "boolean" && onToggleAutoPip && (
-        <div className="effects-group">
-          <div className="effects-row-between">
-            <div className="effects-text-wrap">
-              <span className="effects-group-title">Auto-minimize</span>
-              <span className="effects-sub-hint">Float video when I switch tabs</span>
+        <div className="effects-section-call">
+          <div className="effects-divider" />
+          <div className="effects-group">
+            <span className="effects-section-title">Call</span>
+            <div className="effects-row-between">
+              <div className="effects-text-wrap">
+                <span className="effects-group-title">Auto-minimize</span>
+                <span className="effects-sub-hint">Float video when I switch tabs</span>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                className={`effects-toggle-switch ${autoPipEnabled ? "on" : "off"}`}
+                onClick={() => onToggleAutoPip(!autoPipEnabled)}
+                aria-checked={autoPipEnabled}
+                aria-label={
+                  autoPipEnabled
+                    ? "Auto-minimize when switching tabs on"
+                    : "Auto-minimize when switching tabs off"
+                }
+              >
+                <span className="effects-toggle-track">
+                  <span className="effects-toggle-thumb" />
+                </span>
+              </button>
             </div>
-            <button
-              type="button"
-              role="switch"
-              className={`effects-toggle-switch ${autoPipEnabled ? "on" : "off"}`}
-              onClick={() => onToggleAutoPip(!autoPipEnabled)}
-              aria-checked={autoPipEnabled}
-              aria-label={
-                autoPipEnabled
-                  ? "Auto-minimize when switching tabs on"
-                  : "Auto-minimize when switching tabs off"
-              }
-            >
-              <span className="effects-toggle-track">
-                <span className="effects-toggle-thumb" />
-              </span>
-            </button>
+            <p className="effects-sub-hint" style={{ marginTop: "4px", fontSize: "10.5px" }}>
+              If nothing happens, check that Automatic picture-in-picture is allowed for this site in your browser&apos;s site settings.
+            </p>
           </div>
-          <p className="effects-sub-hint" style={{ marginTop: "4px", fontSize: "10.5px" }}>
-            If nothing happens, check that Automatic picture-in-picture is allowed for this site in your browser&apos;s site settings.
-          </p>
         </div>
       )}
     </div>
