@@ -3385,15 +3385,23 @@ button {
   flex: none;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 7px;
+  justify-content: flex-end;
+  gap: 8px;
   width: 100%;
-  padding: 8px 10px;
+  padding: 8px 24px 8px 16px;
   overflow-x: auto;
   background: linear-gradient(180deg, rgba(20, 8, 15, 0.96), rgba(12, 4, 10, 0.99));
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 26;
   scrollbar-width: none;
+}
+
+@media (max-width: 680px) {
+  .watch-controls {
+    justify-content: center;
+    padding: 8px 10px;
+    gap: 6px;
+  }
 }
 
 .watch-controls::-webkit-scrollbar {
