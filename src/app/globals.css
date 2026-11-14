@@ -1459,7 +1459,8 @@ button {
   pointer-events: auto;
 }
 
-.watch-controls-wrap {
+.watch-controls-wrap,
+.watch-pill-wrapper {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -1467,6 +1468,64 @@ button {
   flex: 0 0 auto;
   z-index: 40;
   pointer-events: auto;
+  overflow: clip;
+  padding: 6px 4px;
+  margin: -6px -4px;
+  box-sizing: border-box;
+}
+
+.watch-pill-wrapper.pill-enter {
+  animation: pillSlideIn 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.watch-pill-wrapper.pill-idle {
+  width: auto;
+  max-width: 100%;
+  opacity: 1;
+  transform: none;
+}
+
+.watch-pill-wrapper.pill-exit {
+  animation: pillSlideOut 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes pillSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(24px);
+    width: 0;
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+    width: var(--pill-width, 516px);
+  }
+}
+
+@keyframes pillSlideOut {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+    width: var(--pill-width, 516px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(24px);
+    width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .watch-pill-wrapper,
+  .watch-pill-wrapper.pill-enter,
+  .watch-pill-wrapper.pill-idle,
+  .watch-pill-wrapper.pill-exit {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    width: auto !important;
+  }
 }
 
 .dock {

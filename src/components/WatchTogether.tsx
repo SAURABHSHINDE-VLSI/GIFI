@@ -12,6 +12,7 @@ import { decideSync, projectPosition } from "@/lib/watchSync";
 type PeerWatchState = Parameters<typeof decideSync>[0];
 import { Icon } from "./Icons";
 import WatchControls from "./WatchControls";
+import WatchPillWrapper from "./WatchPillWrapper";
 import {
   buildSpotifyEmbedUrl,
   buildYouTubeEmbedUrl,
@@ -321,9 +322,13 @@ export default function WatchTogether({
     );
   }, []);
 
-  const closePlayer = useCallback(
+  const [isClosing, setIsClosing] = useState(false);
+  const closingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const performClose = useCallback(
     (broadcast = true) => {
       lastLocalActionRef.current = Date.now();
+      setIsClosing(false);
       setClock(null);
       clockRef.current = null;
       lastReportedIframeTimeRef.current = 0;
@@ -335,6 +340,26 @@ export default function WatchTogether({
       onClose();
     },
     [broadcastWatch, onClose],
+  );
+
+  const closePlayer = useCallback(
+    (broadcast = true) => {
+      const prefersReduced =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (prefersReduced || !clockRef.current) {
+        performClose(broadcast);
+        return;
+      }
+
+      setIsClosing(true);
+      if (closingTimerRef.current) clearTimeout(closingTimerRef.current);
+      closingTimerRef.current = setTimeout(() => {
+        performClose(broadcast);
+      }, 280);
+    },
+    [performClose],
   );
 
   const applyClock = useCallback(
@@ -1147,7 +1172,10 @@ export default function WatchTogether({
     const isYouTube = clock.mediaType === "youtube";
 
     const content = (
-      <div className="watch-controls-wrap">
+      <WatchPillWrapper
+        closing={isClosing}
+        onClosed={() => performClose(true)}
+      >
         <WatchControls
           isYouTube={isYouTube}
           isPlaying={clock.isPlaying}
@@ -1172,7 +1200,7 @@ export default function WatchTogether({
           onBrowse={isYouTube ? () => setPickerModalOpen(true) : undefined}
           onClose={() => closePlayer(true)}
         />
-      </div>
+      </WatchPillWrapper>
     );
 
     if (dockRef?.current) {
