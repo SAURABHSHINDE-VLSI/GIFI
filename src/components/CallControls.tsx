@@ -52,7 +52,7 @@ export default function CallControls({
   unreadCount,
 }: Props) {
   return (
-    <div className="call-controls">
+    <div className={`call-controls ${watchActive ? "watch-layout" : ""}`}>
       <div className="dock">
         {/* Left Group: Core Call Controls (Mic, Camera, End) */}
         <div className="dock-group dock-group-left">
