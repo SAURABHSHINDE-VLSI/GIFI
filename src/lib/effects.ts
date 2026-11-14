@@ -72,3 +72,30 @@ export function savePrefs(prefs: EffectsPrefs): void {
     // Ignore storage write failures (quota exceeded, private mode)
   }
 }
+
+export const STORAGE_KEY_AUTOPIP = "herz:autopip";
+
+export function loadAutoPipPref(): boolean {
+  if (typeof window === "undefined") {
+    return true;
+  }
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY_AUTOPIP);
+    if (raw === "0") return false;
+    if (raw === "1") return true;
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+export function saveAutoPipPref(enabled: boolean): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(STORAGE_KEY_AUTOPIP, enabled ? "1" : "0");
+  } catch {
+    // Ignore storage write failures
+  }
+}
