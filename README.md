@@ -166,6 +166,38 @@ HERZ allows users to multitask while keeping the video call alive in a floating 
 
 ---
 
+## Screen-Share Audio & Watch Together Synchronization
+
+### 1. Screen-Share Audio
+- **High-Fidelity Audio Streaming**: When a partner shares content, screen audio is published alongside the video track as a dedicated `ScreenShareAudio` WebRTC stream.
+- **How to Use**:
+  - In Google Chrome or Microsoft Edge, click the **Share Screen** button.
+  - In the browser dialog, select the **Chrome Tab** or **Edge Tab** tab.
+  - Check the checkbox labeled **"Also share tab audio"** at the bottom-left before confirming.
+  - If sharing starts without audio, HERZ displays a helpful advisory toast reminding you how to include sound.
+- **Audio Capture Optimization**: Voice filters (`echoCancellation`, `noiseSuppression`, `autoGainControl`) are disabled on screen audio capture so shared music and video audio retain full dynamic range and fidelity. `restrictOwnAudio: true` keeps call participant voices out of the captured stream.
+- **Known Browser Limits**:
+  - **macOS Desktop/Window Share**: macOS restricts system-wide audio capture from the browser. To share sound on macOS, you must share a browser tab rather than an entire screen or external application window.
+  - **Mobile Browsers**: iOS Safari and Android Chrome do not support tab or system audio sharing via `getDisplayMedia`.
+  - **Receiving Audio Autoplay**: If browser autoplay policies temporarily block remote screen audio, HERZ displays a discrete floating "Tap to enable sound" button.
+
+### 2. Watch Together Synchronization Protocol
+- **Shared Server Clock (`/api/time`)**: To eliminate local device clock skew, clients synchronize with server time using lightweight NTP-style round-trip time (RTT) measurements, maintaining accurate offsets via `serverNow()`.
+- **Leader-Laggard Sync Logic (`decideSync`)**:
+  - Rather than ping-ponging positions, the client furthest along in playback is recognized as the "leader".
+  - If the "laggard" drifts behind the leader by more than the **1.5-second deadband**, only the laggard smoothly seeks forward to the leader's projected position.
+  - The leader never jumps backward, completely eliminating stutter and feedback loops.
+- **Stability Guards**:
+  - **User-Action Guard**: Automatic sync pauses for 6 seconds following any manual user seek, play, or pause to allow smooth player buffering.
+  - **Cooldown**: A 5-second cooldown enforces spacing between automated correction seeks.
+- **Green Sync Toggle**:
+  - Stage controls feature an accessible sync toggle with a pulsing green indicator (`#5fd08a`) showing "Synced" when active.
+  - Toggling turns off automatic drift correction (e.g. for partners on different network speeds), while manual play/pause controls remain synchronized.
+  - Sync state is remembered in local storage under `herz:watchsync`.
+- **Spotify Streaming Note**: Spotify widgets operate inside cross-origin sandboxed iframes that do not expose player playback timestamps or programmatic seek APIs to host pages. HERZ synchronizes track selection and playback start between partners, but millisecond frame-sync is physically limited by the Spotify embed SDK.
+
+---
+
 ## Security Notes
 
 - **Content Security Policy (CSP)**:
