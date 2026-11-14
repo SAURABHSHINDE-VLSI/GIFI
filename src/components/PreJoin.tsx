@@ -55,7 +55,14 @@ export default function PreJoin({
     return () => {
       cancelled = true;
       stream?.getTracks().forEach((track) => track.stop());
-      if (videoEl) videoEl.srcObject = null;
+      if (videoEl) {
+        try {
+          videoEl.pause();
+          videoEl.srcObject = null;
+        } catch {
+          // ignore
+        }
+      }
     };
   }, [camOn, facing]);
 
@@ -63,7 +70,12 @@ export default function PreJoin({
     const video = videoRef.current;
     if (video?.srcObject) {
       (video.srcObject as MediaStream).getTracks().forEach((track) => track.stop());
-      video.srcObject = null;
+      try {
+        video.pause();
+        video.srcObject = null;
+      } catch {
+        // ignore
+      }
     }
     onJoin({ audio: micOn, video: camOn });
   }

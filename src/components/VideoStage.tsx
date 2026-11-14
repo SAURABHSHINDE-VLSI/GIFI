@@ -29,6 +29,7 @@ type Props = {
   canFlip: boolean;
   onFlipCamera: () => void;
   bursts: Burst[];
+  focusMode: "partner" | "self";
 };
 
 export default function VideoStage({
@@ -52,6 +53,7 @@ export default function VideoStage({
   canFlip,
   onFlipCamera,
   bursts,
+  focusMode,
 }: Props) {
   return (
     <div className="call-stage" ref={stageRef}>
@@ -99,6 +101,12 @@ export default function VideoStage({
             playsInline
           />
         )
+      ) : focusMode === "self" ? (
+        <div className="stage-empty">
+          <div className="avatar">{initialOf(selfName)}</div>
+          <p className="stage-cap">Your camera is off</p>
+          <p className="stage-sub">Tap the camera button to turn it on</p>
+        </div>
       ) : partner ? (
         <div className="stage-empty">
           <div className="avatar remote">{initialOf(partner.name || partner.identity)}</div>
@@ -146,7 +154,7 @@ export default function VideoStage({
       {!screenStage && (
         <div className={`local-tile ${micOn ? "" : "muted"}`}>
           {localCam ? (
-            <VideoTrack trackRef={localCam} className="local-video" playsInline />
+            <VideoTrack trackRef={localCam} className="local-video mirror" playsInline />
           ) : (
             <div className="local-off">
               <div className="avatar small">{initialOf(selfName)}</div>

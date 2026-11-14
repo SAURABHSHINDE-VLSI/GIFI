@@ -37,7 +37,11 @@ type Props = {
 export default function CallUI({ selfName, partnerName, onLeave }: Props) {
   const room = useRoomContext();
   const connection = useConnectionState();
-  const { cameraTrack: localCamera, isMicrophoneEnabled: micOn } = useLocalParticipant();
+  const {
+    cameraTrack: localCamera,
+    isCameraEnabled,
+    isMicrophoneEnabled: micOn,
+  } = useLocalParticipant();
   const remotes = useRemoteParticipants();
   const partner = remotes[0];
 
@@ -92,6 +96,37 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
 
   const stageRef = useRef<HTMLDivElement | null>(null);
 
+  // The emoji bar is a quick picker, not a permanent toolbar: it hides itself after
+  // a few seconds, and also on picking an emoji, tapping outside or pressing Escape.
+  useEffect(() => {
+    if (!emojiPickerOpen) return;
+
+    const timer = window.setTimeout(() => setEmojiPickerOpen(false), 4000);
+    return () => window.clearTimeout(timer);
+  }, [emojiPickerOpen]);
+
+  useEffect(() => {
+    if (!emojiPickerOpen) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && target.closest(".reaction-trigger-wrap")) return;
+      setEmojiPickerOpen(false);
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setEmojiPickerOpen(false);
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [emojiPickerOpen]);
+
   // Hearts & Reactions
   const onKissReceived = useCallback(() => {
     setGestureFlash("💋 Kiss received");
@@ -125,13 +160,13 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
   );
   const remoteCam = tracks.find(
     (t): t is TrackReference =>
-      Boolean(t.publication) &&
+      Boolean(t.publication && !t.publication.isMuted) &&
       t.source === Track.Source.Camera &&
       t.participant.identity !== room.localParticipant.identity,
   );
   const localCam = tracks.find(
     (t): t is TrackReference =>
-      Boolean(t.publication) &&
+      Boolean(t.publication && !t.publication.isMuted) &&
       t.source === Track.Source.Camera &&
       t.participant.identity === room.localParticipant.identity,
   );
@@ -159,14 +194,63 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
     }
   }, [micOn, room]);
 
+  const cameraOn = Boolean(isCameraEnabled && (!localCamera || !localCamera.isMuted));
+
+  // A watch session arriving from the partner should open the player on this side.
+  const handleWatchVideoState = useCallback((hasVideo: boolean) => {
+    setWatchHasVideo(hasVideo);
+    if (hasVideo) setWatchActive(true);
+  }, []);
+
   const toggleCam = useCallback(async () => {
+    const enabling = !cameraOn;
+
     try {
-      await room.localParticipant.setCameraEnabled(!localCamera?.track);
-    } catch {
-      setNotice("Could not toggle camera.");
-      setTimeout(() => setNotice(null), 3000);
+      await room.localParticipant.setCameraEnabled(
+        enabling,
+        enabling ? { facingMode: facing } : undefined,
+      );
+    } catch (err) {
+      if (enabling) {
+        console.warn("Direct camera enable failed, attempting clean recovery:", err);
+        // Step 1: Wait 250ms for Windows/macOS/mobile camera hardware lock to release
+        await new Promise((resolve) => setTimeout(resolve, 250));
+
+        try {
+          // Retry direct enable with same facing mode
+          await room.localParticipant.setCameraEnabled(true, { facingMode: facing });
+          return;
+        } catch (retryErr) {
+          console.warn("Direct retry failed, unpublishing stale track and republishing fresh:", retryErr);
+          try {
+            // Step 2: If previous track handle was stale/locked, unpublish and publish fresh
+            const existingPub = room.localParticipant.getTrackPublication(Track.Source.Camera);
+            if (existingPub?.track) {
+              await room.localParticipant.unpublishTrack(existingPub.track, true).catch(() => undefined);
+            }
+            await room.localParticipant.setCameraEnabled(true, { facingMode: facing });
+            return;
+          } catch (freshErr) {
+            console.error("Fresh camera publish failed:", freshErr);
+            // Step 3: If on a dual-camera device (mobile), try alternate camera as last resort
+            if (canFlip) {
+              try {
+                const alternate = facing === "user" ? "environment" : "user";
+                await room.localParticipant.setCameraEnabled(true, { facingMode: alternate });
+                setFacing(alternate);
+                return;
+              } catch {
+                // fall through to notice
+              }
+            }
+          }
+        }
+      }
+
+      setNotice("Camera is busy in another app or tab — close it and tap again.");
+      setTimeout(() => setNotice(null), 4000);
     }
-  }, [localCamera, room]);
+  }, [cameraOn, canFlip, facing, room]);
 
   const toggleShare = useCallback(async () => {
     try {
@@ -181,6 +265,7 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
     const next = facing === "user" ? "environment" : "user";
     try {
       await room.localParticipant.setCameraEnabled(false);
+      await new Promise((resolve) => setTimeout(resolve, 150));
       await room.localParticipant.setCameraEnabled(true, {
         facingMode: next,
       });
@@ -262,8 +347,8 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
 
   const [, setGestures] = useState<GestureStatus>("idle");
   useGestureReactions({
-    track: localCam?.publication?.track,
-    enabled: gesturesEnabled,
+    track: cameraOn && localCam?.publication && !localCam.publication.isMuted ? localCam.publication.track : undefined,
+    enabled: Boolean(gesturesEnabled && cameraOn && localCam?.publication && !localCam.publication.isMuted && !sharing),
     onPeace: () => {
       captureMomentScreenshot();
     },
@@ -293,17 +378,21 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
 
   const connected = connection === ConnectionState.Connected;
 
+  // Never silently swap in your own feed when the partner's camera is off — that
+  // made the enlarged view look like a mirror when it was supposed to be them.
   const stage = screenStage
-    ? remoteScreen?.publication
+    ? remoteScreen?.publication && !remoteScreen.publication.isMuted
       ? remoteScreen
-      : localScreen
+      : localScreen?.publication && !localScreen.publication.isMuted
+        ? localScreen
+        : undefined
     : focusMode === "partner"
-      ? remoteCam?.publication
+      ? remoteCam?.publication && !remoteCam.publication.isMuted
         ? remoteCam
-        : localCam
-      : localCam?.publication
+        : undefined
+      : localCam?.publication && !localCam.publication.isMuted
         ? localCam
-        : remoteCam;
+        : undefined;
 
   return (
     <div className="call-wrap">
@@ -354,15 +443,16 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
         </div>
       </header>
 
-      {watchActive ? (
-        <WatchTogether
+      {/* Always mounted: its LiveKit data listener must exist on BOTH sides so a
+          session started by one partner opens on the other one too. */}
+      <WatchTogether
           room={room}
           isActive={watchActive}
           onClose={() => {
             setWatchActive(false);
             setWatchHasVideo(false);
           }}
-          onVideoStateChange={setWatchHasVideo}
+          onVideoStateChange={handleWatchVideoState}
           onPlayingChange={setWatchIsPlaying}
           togglePlayRef={watchTogglePlayRef}
           resyncRef={watchSyncRef}
@@ -379,7 +469,8 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
           micOn={micOn}
           chatVisible={chatVisible}
         />
-      ) : (
+
+      {!watchActive && (
         <VideoStage
           stageRef={stageRef}
           stage={stage}
@@ -397,16 +488,17 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
           connected={connected}
           connection={connection}
           micOn={micOn}
-          camOn={Boolean(localCamera?.track)}
+          camOn={cameraOn}
           canFlip={canFlip}
           onFlipCamera={flipCamera}
           bursts={bursts}
+          focusMode={focusMode}
         />
       )}
 
       <CallControls
         micOn={micOn}
-        camOn={Boolean(localCamera?.track)}
+        camOn={cameraOn}
         sharing={sharing}
         onToggleMic={toggleMic}
         onToggleCam={toggleCam}
@@ -431,7 +523,12 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
           setEmojiPickerOpen(false);
         }}
         gesturesEnabled={gesturesEnabled}
-        onToggleGestures={() => setGesturesEnabled((v) => !v)}
+        onToggleGestures={() => {
+          const next = !gesturesEnabled;
+          setGesturesEnabled(next);
+          setNotice(next ? "✋ Hand gestures ON" : "Hand gestures OFF");
+          setTimeout(() => setNotice(null), 2500);
+        }}
         chatVisible={chatVisible}
         onToggleChat={() => setChatVisible((v) => !v)}
         unreadCount={chat.unread}

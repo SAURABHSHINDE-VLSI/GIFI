@@ -237,7 +237,7 @@ export function useGestureReactions({
   onStatus,
 }: Options) {
   useEffect(() => {
-    if (!enabled || !track) {
+    if (!enabled || !track || track.isMuted || track.mediaStreamTrack?.readyState === "ended") {
       onStatus?.("idle");
       return;
     }
@@ -257,6 +257,19 @@ export function useGestureReactions({
     video.muted = true;
     video.srcObject = new MediaStream([track.mediaStreamTrack]);
     video.play().catch(() => undefined);
+
+    const onTrackEnded = () => {
+      stopped = true;
+      if (timer) clearInterval(timer);
+      try {
+        video.pause();
+        video.srcObject = null;
+      } catch {
+        // ignore
+      }
+      onStatus?.("idle");
+    };
+    track.mediaStreamTrack?.addEventListener("ended", onTrackEnded);
 
     onStatus?.("loading");
 
@@ -392,7 +405,13 @@ export function useGestureReactions({
     return () => {
       stopped = true;
       if (timer) clearInterval(timer);
-      video.srcObject = null;
+      track.mediaStreamTrack?.removeEventListener("ended", onTrackEnded);
+      try {
+        video.pause();
+        video.srcObject = null;
+      } catch {
+        // ignore
+      }
     };
   }, [track, enabled, onPeace, onHeart, onKiss, onThumbsUp, onThumbsDown, onStatus]);
 }

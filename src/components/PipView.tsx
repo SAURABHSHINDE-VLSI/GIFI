@@ -33,8 +33,15 @@ export default function PipView({
     }
 
     const activeCam = remoteCam || localCam;
-    if (!activeCam) {
-      video.srcObject = null;
+    if (!activeCam || activeCam.publication?.isMuted) {
+      if (video.srcObject) {
+        try {
+          video.pause();
+          video.srcObject = null;
+        } catch {
+          // ignore
+        }
+      }
       return;
     }
 
@@ -43,8 +50,15 @@ export default function PipView({
         ? (activeCam.track as { mediaStreamTrack?: MediaStreamTrack })?.mediaStreamTrack
         : undefined;
 
-    if (!tr) {
-      video.srcObject = null;
+    if (!tr || tr.readyState === "ended") {
+      if (video.srcObject) {
+        try {
+          video.pause();
+          video.srcObject = null;
+        } catch {
+          // ignore
+        }
+      }
       return;
     }
 
@@ -52,8 +66,12 @@ export default function PipView({
     video.play().catch(() => undefined);
 
     return () => {
-      video.pause();
-      video.srcObject = null;
+      try {
+        video.pause();
+        video.srcObject = null;
+      } catch {
+        // ignore
+      }
     };
   }, [remoteCam, localCam]);
 

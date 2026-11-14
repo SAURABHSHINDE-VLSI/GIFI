@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "./Icons";
 import MomentsScrapbook from "./MomentsScrapbook";
@@ -81,6 +81,39 @@ export default function Dashboard() {
       loadAmbient();
     }
   }, [me?.user.paired, loadAmbient]);
+
+  const pairedRef = useRef(false);
+  pairedRef.current = Boolean(me?.user.paired);
+
+  // While waiting for the other partner to enter the code, keep checking whether the
+  // pairing landed so this screen switches over by itself — no manual refresh needed.
+  useEffect(() => {
+    if (loading || !me || me.user.paired) return;
+
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const response = await fetch("/api/me", { cache: "no-store" });
+        if (!response.ok || cancelled) return;
+
+        const data: Me = await response.json();
+        if (cancelled || !data.user?.paired || pairedRef.current) return;
+
+        setMe(data);
+        setNotice(`Connected with ${data.partner?.displayName ?? "your partner"}`);
+      } catch {
+        // transient failure — the next tick retries
+      }
+    };
+
+    const timer = window.setInterval(poll, 4000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [loading, me]);
 
   useEffect(() => {
     if (!notice) return;

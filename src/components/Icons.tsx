@@ -29,6 +29,9 @@ export type IconName =
   | "music"
   | "replay-10"
   | "forward-10"
+  | "skip-back"
+  | "skip-forward"
+  | "close"
   | "chevron-up"
   | "chevron-down";
 
@@ -216,6 +219,24 @@ const shapes: Record<IconName, React.ReactNode> = {
       <path d="M12 5a7 7 0 1 1-6.6 4.6" />
       <polygon points="12 1 12 7 17 4" fill="currentColor" stroke="none" />
       <text x="12" y="15" textAnchor="middle" fontSize="6.5" fontWeight="700" fill="currentColor" stroke="none" fontFamily="system-ui, sans-serif">10</text>
+    </>
+  ),
+  "skip-back": (
+    <>
+      <polygon points="17 5 8 12 17 19 17 5" fill="currentColor" stroke="none" />
+      <line x1="5" y1="5" x2="5" y2="19" />
+    </>
+  ),
+  "skip-forward": (
+    <>
+      <polygon points="7 5 16 12 7 19 7 5" fill="currentColor" stroke="none" />
+      <line x1="19" y1="5" x2="19" y2="19" />
+    </>
+  ),
+  close: (
+    <>
+      <line x1="6" y1="6" x2="18" y2="18" />
+      <line x1="18" y1="6" x2="6" y2="18" />
     </>
   ),
   "chevron-up": (
