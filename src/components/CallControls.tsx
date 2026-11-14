@@ -27,6 +27,8 @@ type Props = {
   onToggleGestures: () => void;
   effectsOpen: boolean;
   onToggleEffects: () => void;
+  pipSupported?: boolean;
+  onTogglePip?: () => void;
   chatVisible: boolean;
   onToggleChat: () => void;
   unreadCount: number;
@@ -51,6 +53,8 @@ export default function CallControls({
   onToggleGestures,
   effectsOpen,
   onToggleEffects,
+  pipSupported = false,
+  onTogglePip,
   chatVisible,
   onToggleChat,
   unreadCount,
@@ -146,6 +150,23 @@ export default function CallControls({
             </span>
             <span className="ctrl-label">{doodleActive ? "doodling" : "doodle"}</span>
           </button>
+
+          {pipSupported && (
+            <button
+              className="ctrl"
+              type="button"
+              onClick={onTogglePip}
+              aria-label="Minimize call to floating window"
+              title="Minimize (Picture in Picture)"
+            >
+              <span className="ctrl-slot">
+                <span className="ctrl-orb">
+                  <Icon name="pip" size={19} />
+                </span>
+              </span>
+              <span className="ctrl-label">minimize</span>
+            </button>
+          )}
         </div>
 
         <div className="dock-divider" role="separator" aria-orientation="vertical" />

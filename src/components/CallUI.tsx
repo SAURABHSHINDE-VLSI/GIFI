@@ -15,7 +15,8 @@ import { ConnectionState, Track, LocalVideoTrack } from "livekit-client";
 import CallChat from "./CallChat";
 import CallControls from "./CallControls";
 import VideoStage from "./VideoStage";
-import PipView from "./PipView";
+import { useCallPip } from "@/lib/useCallPip";
+import { loadAutoPipPref, saveAutoPipPref } from "@/lib/effects";
 import WatchTogether from "./WatchTogether";
 import LoveCanvas from "./LoveCanvas";
 import MomentsScrapbook from "./MomentsScrapbook";
@@ -98,6 +99,8 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
   const [callSoundMuted, setCallSoundMuted] = useState(false);
   const [focusMode, setFocusMode] = useState<"partner" | "self">("partner");
   const [effectsOpen, setEffectsOpen] = useState(false);
+  const [autoPipEnabled, setAutoPipEnabled] = useState(() => loadAutoPipPref());
+  const [watchTitle, setWatchTitle] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<EffectsPrefs>(() => loadPrefs());
 
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -310,6 +313,33 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
     }
   }, [facing, room]);
 
+  const {
+    supported: pipSupported,
+    open: openPip,
+    PipPortal,
+  } = useCallPip({
+    room,
+    partnerCam: remoteCam,
+    screenShare: screenStage ? (remoteScreen || localScreen) : undefined,
+    watchStatus: {
+      active: watchActive && Boolean(watchTitle),
+      title: watchTitle ?? "Watch Together",
+      playing: watchIsPlaying,
+      toggle: () => watchTogglePlayRef.current?.(),
+    },
+    localMic: {
+      micOn,
+      toggleMic,
+    },
+    localCam: {
+      camOn: cameraOn,
+      toggleCam,
+    },
+    partnerLabel,
+    onEndCall: onLeave,
+    autoPipEnabled,
+  });
+
   const toggleCallSound = useCallback(() => {
     setCallSoundMuted((v) => !v);
   }, []);
@@ -488,6 +518,7 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
           }}
           onVideoStateChange={handleWatchVideoState}
           onPlayingChange={setWatchIsPlaying}
+          onTitleChange={setWatchTitle}
           togglePlayRef={watchTogglePlayRef}
           resyncRef={watchSyncRef}
           rewindRef={watchRewindRef}
@@ -532,6 +563,8 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
       )}
 
       <CallControls
+        pipSupported={pipSupported !== "none"}
+        onTogglePip={openPip}
         effectsOpen={effectsOpen}
         onToggleEffects={() => setEffectsOpen((v) => !v)}
         micOn={micOn}
@@ -596,7 +629,13 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
         prefs={prefs}
         onPrefsChange={handlePrefsChange}
         blurSupported={blurSupported}
+        autoPipEnabled={autoPipEnabled}
+        onToggleAutoPip={(enabled) => {
+          setAutoPipEnabled(enabled);
+          saveAutoPipPref(enabled);
+        }}
       />
+      {PipPortal}
 
       {/* Floating burst layer for hearts & emoji bursts */}
       <div className="burst-layer" aria-hidden="true">
@@ -634,13 +673,7 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
       {notice && <div className="toast">{notice}</div>}
       {gestureFlash && <div className="gesture-toast" aria-live="polite">{gestureFlash}</div>}
 
-      <PipView
-        remoteCam={remoteCam}
-        localCam={localCam}
-        onToggleMic={toggleMic}
-        onToggleCam={toggleCam}
-        onLeave={leave}
-      />
+      {PipPortal}
 
       <RoomAudioRenderer muted={callSoundMuted} volume={callSoundMuted ? 0 : 1} />
     </div>

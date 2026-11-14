@@ -7,12 +7,16 @@ type Props = {
   prefs: EffectsPrefs;
   onPrefsChange: (prefs: EffectsPrefs) => void;
   blurSupported: boolean;
+  autoPipEnabled?: boolean;
+  onToggleAutoPip?: (enabled: boolean) => void;
 };
 
 export default function EffectsControls({
   prefs,
   onPrefsChange,
   blurSupported,
+  autoPipEnabled,
+  onToggleAutoPip,
 }: Props) {
   const [isLowConcurrency, setIsLowConcurrency] = useState(false);
 
@@ -100,6 +104,36 @@ export default function EffectsControls({
           </button>
         </div>
       </div>
+
+      {typeof autoPipEnabled === "boolean" && onToggleAutoPip && (
+        <div className="effects-group">
+          <div className="effects-row-between">
+            <div className="effects-text-wrap">
+              <span className="effects-group-title">Auto-minimize</span>
+              <span className="effects-sub-hint">Float video when I switch tabs</span>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              className={`effects-toggle-switch ${autoPipEnabled ? "on" : "off"}`}
+              onClick={() => onToggleAutoPip(!autoPipEnabled)}
+              aria-checked={autoPipEnabled}
+              aria-label={
+                autoPipEnabled
+                  ? "Auto-minimize when switching tabs on"
+                  : "Auto-minimize when switching tabs off"
+              }
+            >
+              <span className="effects-toggle-track">
+                <span className="effects-toggle-thumb" />
+              </span>
+            </button>
+          </div>
+          <p className="effects-sub-hint" style={{ marginTop: "4px", fontSize: "10.5px" }}>
+            If nothing happens, check that Automatic picture-in-picture is allowed for this site in your browser&apos;s site settings.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

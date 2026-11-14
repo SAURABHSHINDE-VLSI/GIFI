@@ -11,6 +11,8 @@ type Props = {
   prefs: EffectsPrefs;
   onPrefsChange: (prefs: EffectsPrefs) => void;
   blurSupported: boolean;
+  autoPipEnabled?: boolean;
+  onToggleAutoPip?: (enabled: boolean) => void;
 };
 
 export default function EffectsSheet({
@@ -19,6 +21,8 @@ export default function EffectsSheet({
   prefs,
   onPrefsChange,
   blurSupported,
+  autoPipEnabled,
+  onToggleAutoPip,
 }: Props) {
   const panelRef = useRef<HTMLDivElement | null>(null);
 
@@ -72,6 +76,8 @@ export default function EffectsSheet({
             prefs={prefs}
             onPrefsChange={onPrefsChange}
             blurSupported={blurSupported}
+            autoPipEnabled={autoPipEnabled}
+            onToggleAutoPip={onToggleAutoPip}
           />
         </div>
       </div>

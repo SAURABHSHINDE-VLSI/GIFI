@@ -30,6 +30,7 @@ type Props = {
   onClose: () => void;
   onVideoStateChange?: (hasVideo: boolean) => void;
   onPlayingChange?: (isPlaying: boolean) => void;
+  onTitleChange?: (title: string | null) => void;
   togglePlayRef?: React.MutableRefObject<(() => void) | null>;
   resyncRef?: React.MutableRefObject<(() => void) | null>;
   rewindRef?: React.MutableRefObject<((seconds?: number) => void) | null>;
@@ -246,6 +247,7 @@ export default function WatchTogether({
   onClose,
   onVideoStateChange,
   onPlayingChange,
+  onTitleChange,
   togglePlayRef,
   resyncRef,
   rewindRef,
@@ -266,7 +268,8 @@ export default function WatchTogether({
     clockRef.current = clock;
     onVideoStateChange?.(Boolean(clock?.videoId));
     onPlayingChange?.(Boolean(clock?.isPlaying));
-  }, [clock, onVideoStateChange, onPlayingChange]);
+    onTitleChange?.(clock?.title ?? null);
+  }, [clock, onVideoStateChange, onPlayingChange, onTitleChange]);
 
   const [pickerModalOpen, setPickerModalOpen] = useState(false);
   const [urlInput, setUrlInput] = useState("");
