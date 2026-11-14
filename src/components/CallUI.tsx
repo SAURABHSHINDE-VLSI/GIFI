@@ -14,6 +14,7 @@ import {
 import type { TrackReference } from "@livekit/components-react";
 import { ConnectionState, Track, LocalVideoTrack } from "livekit-client";
 import CallChat from "./CallChat";
+import CallDock from "./CallDock";
 import CallControls from "./CallControls";
 import VideoStage from "./VideoStage";
 import { useCallPip } from "@/lib/useCallPip";
@@ -95,6 +96,7 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
   const watchSyncRef = useRef<(() => void) | null>(null);
   const watchRewindRef = useRef<((seconds?: number) => void) | null>(null);
   const watchOpenPickerRef = useRef<(() => void) | null>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
 
   // Automatic Audio Ducking (Auto-reduces media and screen share volume to 20% when anyone speaks)
   const localParticipant = room.localParticipant;
@@ -605,9 +607,10 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
         </div>
       </header>
 
-      {/* Always mounted: its LiveKit data listener must exist on BOTH sides so a
-          session started by one partner opens on the other one too. */}
-      <WatchTogether
+      <main className="call-main-stage">
+        {/* Always mounted: its LiveKit data listener must exist on BOTH sides so a
+            session started by one partner opens on the other one too. */}
+        <WatchTogether
           room={room}
           isActive={watchActive}
           onClose={() => {
@@ -635,73 +638,77 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
           micOn={micOn}
           chatVisible={chatVisible}
           doodleActive={doodleActive}
+          dockRef={dockRef}
         />
 
-      {!watchActive && (
-        <VideoStage
-          stageRef={stageRef}
-          stage={stage}
-          screenStage={screenStage}
-          chatVisible={chatVisible}
-          remoteScreen={remoteScreen}
-          localScreen={localScreen}
-          remoteCam={remoteCam}
-          localCam={localCam}
-          partner={partner}
-          partnerLabel={partnerLabel}
-          partnerName={partnerName}
-          selfName={selfName}
-          showHint={false}
-          connected={connected}
-          connection={connection}
+        {!watchActive && (
+          <VideoStage
+            stageRef={stageRef}
+            stage={stage}
+            screenStage={screenStage}
+            chatVisible={chatVisible}
+            remoteScreen={remoteScreen}
+            localScreen={localScreen}
+            remoteCam={remoteCam}
+            localCam={localCam}
+            partner={partner}
+            partnerLabel={partnerLabel}
+            partnerName={partnerName}
+            selfName={selfName}
+            showHint={false}
+            connected={connected}
+            connection={connection}
+            micOn={micOn}
+            camOn={cameraOn}
+            canFlip={canFlip}
+            onFlipCamera={flipCamera}
+            effectsOpen={effectsOpen}
+            onToggleEffects={() => setEffectsOpen((prev) => !prev)}
+            bursts={bursts}
+            focusMode={focusMode}
+          />
+        )}
+      </main>
+
+      <CallDock ref={dockRef}>
+        <CallControls
           micOn={micOn}
           camOn={cameraOn}
-          canFlip={canFlip}
-          onFlipCamera={flipCamera}
-          effectsOpen={effectsOpen}
-          onToggleEffects={() => setEffectsOpen((prev) => !prev)}
-          bursts={bursts}
-          focusMode={focusMode}
+          sharing={sharing}
+          onToggleMic={toggleMic}
+          onToggleCam={toggleCam}
+          onToggleShare={toggleShare}
+          onLeave={leave}
+          watchActive={watchActive}
+          onToggleWatch={() => setWatchActive((v) => !v)}
+          watchIsPlaying={watchIsPlaying}
+          onToggleWatchPlay={() => watchTogglePlayRef.current?.()}
+          onWatchRewind={(sec) => {
+            watchRewindRef.current?.(sec);
+            setNotice("⏪ Rewound 10s together");
+            setTimeout(() => setNotice(null), 2500);
+          }}
+          onWatchSwitch={() => watchOpenPickerRef.current?.()}
+          doodleActive={doodleActive}
+          onToggleDoodle={() => setDoodleActive((v) => !v)}
+          emojiPickerOpen={emojiPickerOpen}
+          onToggleEmojiPicker={() => setEmojiPickerOpen((v) => !v)}
+          onSelectEmoji={(emoji) => {
+            sendEmojiBurst(emoji);
+            setEmojiPickerOpen(false);
+          }}
+          gesturesEnabled={gesturesEnabled}
+          onToggleGestures={() => {
+            const next = !gesturesEnabled;
+            setGesturesEnabled(next);
+            setNotice(next ? "✋ Hand gestures ON" : "Hand gestures OFF");
+            setTimeout(() => setNotice(null), 2500);
+          }}
+          chatVisible={chatVisible}
+          onToggleChat={() => setChatVisible((v) => !v)}
+          unreadCount={chat.unread}
         />
-      )}
-
-      <CallControls
-        micOn={micOn}
-        camOn={cameraOn}
-        sharing={sharing}
-        onToggleMic={toggleMic}
-        onToggleCam={toggleCam}
-        onToggleShare={toggleShare}
-        onLeave={leave}
-        watchActive={watchActive}
-        onToggleWatch={() => setWatchActive((v) => !v)}
-        watchIsPlaying={watchIsPlaying}
-        onToggleWatchPlay={() => watchTogglePlayRef.current?.()}
-        onWatchRewind={(sec) => {
-          watchRewindRef.current?.(sec);
-          setNotice("⏪ Rewound 10s together");
-          setTimeout(() => setNotice(null), 2500);
-        }}
-        onWatchSwitch={() => watchOpenPickerRef.current?.()}
-        doodleActive={doodleActive}
-        onToggleDoodle={() => setDoodleActive((v) => !v)}
-        emojiPickerOpen={emojiPickerOpen}
-        onToggleEmojiPicker={() => setEmojiPickerOpen((v) => !v)}
-        onSelectEmoji={(emoji) => {
-          sendEmojiBurst(emoji);
-          setEmojiPickerOpen(false);
-        }}
-        gesturesEnabled={gesturesEnabled}
-        onToggleGestures={() => {
-          const next = !gesturesEnabled;
-          setGesturesEnabled(next);
-          setNotice(next ? "✋ Hand gestures ON" : "Hand gestures OFF");
-          setTimeout(() => setNotice(null), 2500);
-        }}
-        chatVisible={chatVisible}
-        onToggleChat={() => setChatVisible((v) => !v)}
-        unreadCount={chat.unread}
-      />
+      </CallDock>
 
       <CallChat
         visible={chatVisible}

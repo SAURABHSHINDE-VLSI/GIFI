@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Room } from "livekit-client";
 import { RoomEvent } from "livekit-client";
 import { VideoTrack } from "@livekit/components-react";
@@ -53,6 +54,7 @@ type Props = {
   doodleActive?: boolean;
   effectsOpen?: boolean;
   onToggleEffects?: () => void;
+  dockRef?: React.RefObject<HTMLDivElement | null>;
 };
 
 const ROMANTIC_SUGGESTIONS: { title: string; id: string; desc: string; type: MediaType }[] = [
@@ -256,6 +258,7 @@ export default function WatchTogether({
   doodleActive = false,
   effectsOpen = false,
   onToggleEffects,
+  dockRef,
 }: Props) {
   // Synchronize server time on mount and periodically every 2 minutes
   useEffect(() => {
@@ -1143,7 +1146,7 @@ export default function WatchTogether({
     if (!clock || doodleActive || pickerModalOpen) return null;
     const isYouTube = clock.mediaType === "youtube";
 
-    return (
+    const content = (
       <div className="watch-controls-wrap">
         <WatchControls
           isYouTube={isYouTube}
@@ -1171,6 +1174,11 @@ export default function WatchTogether({
         />
       </div>
     );
+
+    if (dockRef?.current) {
+      return createPortal(content, dockRef.current);
+    }
+    return content;
   };
 
   if (!isActive) return null;
