@@ -3354,7 +3354,6 @@ button {
 .watch-together-stage {
   z-index: 10;
   background: #0d040a;
-  padding-bottom: calc(98px + env(safe-area-inset-bottom));
 }
 
 .watch-video-wrap {
