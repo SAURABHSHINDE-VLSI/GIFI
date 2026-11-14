@@ -1,14 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "./Icons";
 import MomentsScrapbook from "./MomentsScrapbook";
+import HeartSignal from "./HeartSignal";
+import DualClockArc from "./DualClockArc";
+import OrigamiNotes, { OrigamiItem } from "./OrigamiNotes";
+import LoveStoryTimeline, { Milestone } from "./LoveStoryTimeline";
 import { copyText, initialOf } from "@/lib/ui";
 
 type Me = {
   user: { username: string; displayName: string; paired: boolean; lastSeen: string };
   partner: { displayName: string; lastSeen: string } | null;
+};
+
+type CoupleMeta = {
+  pair_id: string;
+  anniversary_date: number | null;
+  reunion_date: number | null;
+  reunion_destination: string | null;
+  user1_city: string | null;
+  user1_tz: string | null;
+  user2_city: string | null;
+  user2_tz: string | null;
+  total_call_seconds: number | null;
+  updated_at: number;
+};
+
+type AmbientData = {
+  meta: CoupleMeta | null;
+  signals: Array<{ id: string; fromMe: boolean; fromName: string; at: number }>;
+  origami: OrigamiItem[];
+  milestones: Milestone[];
 };
 
 export default function Dashboard() {
@@ -22,6 +46,19 @@ export default function Dashboard() {
   const [busy, setBusy] = useState(false);
   const [confirmUnpair, setConfirmUnpair] = useState(false);
   const [scrapbookOpen, setScrapbookOpen] = useState(false);
+  const [ambientData, setAmbientData] = useState<AmbientData | null>(null);
+
+  const loadAmbient = useCallback(async () => {
+    try {
+      const res = await fetch("/api/ambient");
+      if (res.ok) {
+        const data = await res.json();
+        setAmbientData(data);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   async function load() {
     const response = await fetch("/api/me");
@@ -40,10 +77,127 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
+    if (me?.user.paired) {
+      loadAmbient();
+    }
+  }, [me?.user.paired, loadAmbient]);
+
+  useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(null), 2600);
     return () => clearTimeout(timer);
   }, [notice]);
+
+  const sendHeartSignal = async () => {
+    try {
+      const res = await fetch("/api/ambient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "heart_signal" }),
+      });
+      if (res.ok) {
+        await loadAmbient();
+        setNotice(`Heart sent to ${me?.partner?.displayName ?? "your partner"}!`);
+      }
+    } catch {
+      setError("Could not send heart signal.");
+    }
+  };
+
+  const sendOrigamiNote = async (data: { content: string; foldType: string; paperStyle: string }) => {
+    try {
+      const res = await fetch("/api/ambient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send_origami", ...data }),
+      });
+      if (res.ok) {
+        await loadAmbient();
+        setNotice("Origami note folded and sent!");
+      }
+    } catch {
+      setError("Could not send origami note.");
+    }
+  };
+
+  const openOrigamiNote = async (id: string) => {
+    try {
+      const res = await fetch("/api/ambient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "open_origami", id }),
+      });
+      if (res.ok) {
+        await loadAmbient();
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const updateMeta = async (data: {
+    anniversaryDate?: number;
+    reunionDate?: number;
+    reunionDestination?: string;
+    user1City?: string;
+    user1Tz?: string;
+    user2City?: string;
+    user2Tz?: string;
+  }) => {
+    try {
+      const res = await fetch("/api/ambient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update_meta", ...data }),
+      });
+      if (res.ok) {
+        await loadAmbient();
+        setNotice("Preferences saved.");
+      }
+    } catch {
+      setError("Could not save preferences.");
+    }
+  };
+
+  const updateLocations = (u1City: string, u1Tz: string, u2City: string, u2Tz: string) => {
+    updateMeta({
+      user1City: u1City,
+      user1Tz: u1Tz,
+      user2City: u2City,
+      user2Tz: u2Tz,
+    });
+  };
+
+  const addMilestone = async (data: { title: string; date: number; emoji: string; note?: string }) => {
+    try {
+      const res = await fetch("/api/ambient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "add_milestone", ...data }),
+      });
+      if (res.ok) {
+        await loadAmbient();
+        setNotice("Milestone added to your timeline!");
+      }
+    } catch {
+      setError("Could not add milestone.");
+    }
+  };
+
+  const deleteMilestone = async (id: string) => {
+    try {
+      const res = await fetch("/api/ambient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete_milestone", id }),
+      });
+      if (res.ok) {
+        await loadAmbient();
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   async function createCode() {
     setBusy(true);
@@ -133,7 +287,10 @@ export default function Dashboard() {
 
   return (
     <main className="home">
-      <section className="home-card wide clean-dashboard">
+      <section
+        className="home-card wide clean-dashboard"
+        style={me?.user.paired ? { width: "min(680px, 100%)", maxWidth: "680px" } : undefined}
+      >
         <div className="brand compact">
           <div className="brand-heart">
             <Icon name="heart" size={18} />
@@ -172,6 +329,49 @@ export default function Dashboard() {
                 <Icon name="gallery" size={16} />
                 <span>Moments Scrapbook</span>
               </button>
+            </div>
+
+            {/* Ambient Sanctuary Suite */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginTop: "24px", marginBottom: "20px" }}>
+              <HeartSignal
+                myName={me.user.displayName}
+                partnerName={me.partner.displayName}
+                signals={ambientData?.signals ?? []}
+                onSendSignal={sendHeartSignal}
+              />
+
+              <DualClockArc
+                myName={me.user.displayName}
+                partnerName={me.partner.displayName}
+                user1City={ambientData?.meta?.user1_city ?? null}
+                user1Tz={ambientData?.meta?.user1_tz ?? null}
+                user2City={ambientData?.meta?.user2_city ?? null}
+                user2Tz={ambientData?.meta?.user2_tz ?? null}
+                reunionDate={ambientData?.meta?.reunion_date ?? null}
+                onUpdateLocations={updateLocations}
+              />
+
+              <OrigamiNotes
+                myName={me.user.displayName}
+                partnerName={me.partner.displayName}
+                notes={ambientData?.origami ?? []}
+                onSendNote={sendOrigamiNote}
+                onOpenNote={openOrigamiNote}
+              />
+
+              <LoveStoryTimeline
+                myName={me.user.displayName}
+                partnerName={me.partner.displayName}
+                anniversaryDate={ambientData?.meta?.anniversary_date ?? null}
+                reunionDate={ambientData?.meta?.reunion_date ?? null}
+                reunionDestination={ambientData?.meta?.reunion_destination ?? null}
+                totalCallSeconds={ambientData?.meta?.total_call_seconds ?? 0}
+                milestones={ambientData?.milestones ?? []}
+                onUpdateMeta={updateMeta}
+                onAddMilestone={addMilestone}
+                onDeleteMilestone={deleteMilestone}
+                onOpenScrapbook={() => setScrapbookOpen(true)}
+              />
             </div>
 
             <p className="hint">private room · only the two of you can enter</p>

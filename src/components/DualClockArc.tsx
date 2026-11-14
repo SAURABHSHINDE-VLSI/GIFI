@@ -41,13 +41,39 @@ function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: num
   return Math.round(R * c);
 }
 
+function formatTzTime(d: Date, tz?: string | null): string {
+  if (tz) {
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      }).format(d);
+    } catch {
+      // Fall back to local browser time zone
+    }
+  }
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    }).format(d);
+  } catch {
+    return d.toLocaleTimeString();
+  }
+}
+
 export default function DualClockArc({
   myName,
   partnerName,
-  user1City = "New York",
-  user1Tz: _user1Tz = "America/New_York",
-  user2City = "Paris",
-  user2Tz: _user2Tz = "Europe/Paris",
+  user1City = null,
+  user1Tz = null,
+  user2City = null,
+  user2Tz = null,
   reunionDate,
   onUpdateLocations,
 }: Props) {
@@ -57,6 +83,13 @@ export default function DualClockArc({
   const [city1, setCity1] = useState(user1City || "New York");
   const [city2, setCity2] = useState(user2City || "Paris");
 
+  const isConfigured = Boolean(user1City || user2City);
+
+  useEffect(() => {
+    if (user1City) setCity1(user1City);
+    if (user2City) setCity2(user2City);
+  }, [user1City, user2City]);
+
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -65,38 +98,21 @@ export default function DualClockArc({
   const c1Data = CITY_DATA[city1] || CITY_DATA["New York"];
   const c2Data = CITY_DATA[city2] || CITY_DATA["Paris"];
 
+  const effectiveTz1 = user1Tz || c1Data.tz;
+  const effectiveTz2 = user2Tz || c2Data.tz;
+
   const distanceKm = useMemo(() => {
     return calculateDistanceKm(c1Data.lat, c1Data.lon, c2Data.lat, c2Data.lon);
   }, [c1Data, c2Data]);
 
-  // Format times
+  // Format times safely
   const timeStr1 = useMemo(() => {
-    try {
-      return new Intl.DateTimeFormat("en-US", {
-        timeZone: c1Data.tz,
-        hour: "numeric",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-      }).format(time);
-    } catch {
-      return time.toLocaleTimeString();
-    }
-  }, [time, c1Data.tz]);
+    return formatTzTime(time, effectiveTz1);
+  }, [time, effectiveTz1]);
 
   const timeStr2 = useMemo(() => {
-    try {
-      return new Intl.DateTimeFormat("en-US", {
-        timeZone: c2Data.tz,
-        hour: "numeric",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-      }).format(time);
-    } catch {
-      return time.toLocaleTimeString();
-    }
-  }, [time, c2Data.tz]);
+    return formatTzTime(time, effectiveTz2);
+  }, [time, effectiveTz2]);
 
   const daysUntilReunion = useMemo(() => {
     if (!reunionDate) return null;
@@ -235,96 +251,118 @@ export default function DualClockArc({
         </div>
       )}
 
-      {/* Clocks Row */}
-      <div className="dual-clocks-row">
-        <div className="clock-col">
-          <div className="clock-city">
-            <span>{city1}</span>
-            <span className="weather-badge">
-              {c1Data.weather} {c1Data.temp}°C
-            </span>
-          </div>
-          <div className="clock-time">{timeStr1}</div>
-          <div className="clock-user">{myName}</div>
+      {/* Clocks Row or Empty State */}
+      {!isConfigured && !isEditing ? (
+        <div style={{ padding: "36px 20px", textAlign: "center" }}>
+          <div style={{ fontSize: "36px", marginBottom: "10px" }}>🌍</div>
+          <h4 style={{ fontSize: "16px", fontWeight: 600, color: "#fff", marginBottom: "6px" }}>
+            Set your cities & time zones
+          </h4>
+          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)", maxWidth: "340px", margin: "0 auto 16px", lineHeight: 1.4 }}>
+            Choose where you and {partnerName} are located to see each other&apos;s live time, weather, and distance apart.
+          </p>
+          <button
+            type="button"
+            className="widget-pill-btn"
+            onClick={() => setIsEditing(true)}
+            style={{ padding: "8px 22px", borderRadius: "999px", background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)" }}
+          >
+            Set your dates & cities
+          </button>
         </div>
-
-        <div className="clock-center">
-          <div className="clock-distance-badge">
-            <span className="distance-icon">⚡</span>
-            <span>{distanceKm.toLocaleString()} km</span>
-          </div>
-          {daysUntilReunion !== null && (
-            <div className="reunion-pill">
-              ✈️ {daysUntilReunion} {daysUntilReunion === 1 ? "day" : "days"} to reunion
+      ) : (
+        <>
+          <div className="dual-clocks-row">
+            <div className="clock-col">
+              <div className="clock-city">
+                <span>{city1}</span>
+                <span className="weather-badge">
+                  {c1Data.weather} {c1Data.temp}°C
+                </span>
+              </div>
+              <div className="clock-time">{timeStr1}</div>
+              <div className="clock-user">{myName}</div>
             </div>
-          )}
-        </div>
 
-        <div className="clock-col right">
-          <div className="clock-city">
-            <span className="weather-badge">
-              {c2Data.weather} {c2Data.temp}°C
-            </span>
-            <span>{city2}</span>
+            <div className="clock-center">
+              <div className="clock-distance-badge">
+                <span className="distance-icon">⚡</span>
+                <span>{distanceKm.toLocaleString()} km</span>
+              </div>
+              {daysUntilReunion !== null && (
+                <div className="reunion-pill">
+                  ✈️ {daysUntilReunion} {daysUntilReunion === 1 ? "day" : "days"} to reunion
+                </div>
+              )}
+            </div>
+
+            <div className="clock-col right">
+              <div className="clock-city">
+                <span className="weather-badge">
+                  {c2Data.weather} {c2Data.temp}°C
+                </span>
+                <span>{city2}</span>
+              </div>
+              <div className="clock-time">{timeStr2}</div>
+              <div className="clock-user">{partnerName}</div>
+            </div>
           </div>
-          <div className="clock-time">{timeStr2}</div>
-          <div className="clock-user">{partnerName}</div>
-        </div>
-      </div>
 
-      {/* Interactive Glowing Map Arc */}
-      <div className="globe-arc-container">
-        <svg viewBox={`0 0 ${mapWidth} ${mapHeight}`} className="globe-arc-svg" aria-hidden="true">
-          <defs>
-            <linearGradient id="arcGlow" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#ff4d94" />
-              <stop offset="50%" stopColor="#ffb3c4" />
-              <stop offset="100%" stopColor="#ef5f86" />
-            </linearGradient>
-            <filter id="glowBlur" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
+          {/* Interactive Glowing Map Arc */}
+          <div className="globe-arc-container">
+            <svg viewBox={`0 0 ${mapWidth} ${mapHeight}`} className="globe-arc-svg" aria-hidden="true">
+              <defs>
+                <linearGradient id="arcGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#ff4d94" />
+                  <stop offset="50%" stopColor="#ffb3c4" />
+                  <stop offset="100%" stopColor="#ef5f86" />
+                </linearGradient>
+                <filter id="glowBlur" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
 
-          {/* Dotted World Grid Lines */}
-          <path
-            d="M 10 30 Q 180 20 350 30 M 10 60 Q 180 50 350 60 M 10 90 Q 180 80 350 90"
-            stroke="rgba(255,255,255,0.06)"
-            strokeDasharray="3 4"
-            fill="none"
-          />
+              {/* Dotted World Grid Lines */}
+              <path
+                d="M 10 30 Q 180 20 350 30 M 10 60 Q 180 50 350 60 M 10 90 Q 180 80 350 90"
+                stroke="rgba(255,255,255,0.06)"
+                strokeDasharray="3 4"
+                fill="none"
+              />
 
-          {/* Glowing Flight Arc */}
-          <path d={arcPath} stroke="rgba(255, 77, 148, 0.25)" strokeWidth="4" fill="none" />
-          <path
-            d={arcPath}
-            stroke="url(#arcGlow)"
-            strokeWidth="1.8"
-            strokeDasharray="5 3"
-            className="arc-flight-path"
-            filter="url(#glowBlur)"
-            fill="none"
-          />
+              {/* Glowing Flight Arc */}
+              <path d={arcPath} stroke="rgba(255, 77, 148, 0.25)" strokeWidth="4" fill="none" />
+              <path
+                d={arcPath}
+                stroke="url(#arcGlow)"
+                strokeWidth="1.8"
+                strokeDasharray="5 3"
+                className="arc-flight-path"
+                filter="url(#glowBlur)"
+                fill="none"
+              />
 
-          {/* Location 1 Marker */}
-          <circle cx={pt1.x} cy={pt1.y} r="5" fill="#ff2e88" filter="url(#glowBlur)" />
-          <circle cx={pt1.x} cy={pt1.y} r="2" fill="#fff" />
-          <text x={pt1.x} y={pt1.y + 14} fill="rgba(255,255,255,0.7)" fontSize="8.5" textAnchor="middle">
-            {city1}
-          </text>
+              {/* Location 1 Marker */}
+              <circle cx={pt1.x} cy={pt1.y} r="5" fill="#ff2e88" filter="url(#glowBlur)" />
+              <circle cx={pt1.x} cy={pt1.y} r="2" fill="#fff" />
+              <text x={pt1.x} y={pt1.y + 14} fill="rgba(255,255,255,0.7)" fontSize="8.5" textAnchor="middle">
+                {city1}
+              </text>
 
-          {/* Location 2 Marker */}
-          <circle cx={pt2.x} cy={pt2.y} r="5" fill="#ef5f86" filter="url(#glowBlur)" />
-          <circle cx={pt2.x} cy={pt2.y} r="2" fill="#fff" />
-          <text x={pt2.x} y={pt2.y + 14} fill="rgba(255,255,255,0.7)" fontSize="8.5" textAnchor="middle">
-            {city2}
-          </text>
-        </svg>
-      </div>
+              {/* Location 2 Marker */}
+              <circle cx={pt2.x} cy={pt2.y} r="5" fill="#ef5f86" filter="url(#glowBlur)" />
+              <circle cx={pt2.x} cy={pt2.y} r="2" fill="#fff" />
+              <text x={pt2.x} y={pt2.y + 14} fill="rgba(255,255,255,0.7)" fontSize="8.5" textAnchor="middle">
+                {city2}
+              </text>
+            </svg>
+          </div>
+        </>
+      )}
     </div>
     </>
   );

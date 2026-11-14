@@ -60,7 +60,7 @@ export default function LoveStoryTimeline({
 
   // Form states
   const [tempAnnivDate, setTempAnnivDate] = useState(() => {
-    const d = anniversaryDate ? new Date(anniversaryDate) : new Date(Date.now() - 180 * 86400000);
+    const d = anniversaryDate ? new Date(anniversaryDate) : new Date();
     return d.toISOString().slice(0, 10);
   });
 
@@ -68,7 +68,7 @@ export default function LoveStoryTimeline({
     const d = reunionDate ? new Date(reunionDate) : new Date(Date.now() + 14 * 86400000);
     return d.toISOString().slice(0, 10);
   });
-  const [tempReunionDest, setTempReunionDest] = useState(reunionDestination || "Reunion Hug ✈️");
+  const [tempReunionDest, setTempReunionDest] = useState(reunionDestination || "");
 
   const [newTitle, setNewTitle] = useState("");
   const [newDate, setNewDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -78,21 +78,25 @@ export default function LoveStoryTimeline({
 
   // 1. Days together
   const daysTogether = useMemo(() => {
-    if (!anniversaryDate) return 180;
+    if (!anniversaryDate) return null;
     const diff = Date.now() - anniversaryDate;
     return Math.max(1, Math.floor(diff / (1000 * 60 * 60 * 24)));
   }, [anniversaryDate]);
 
   const annivFormatted = useMemo(() => {
-    if (!anniversaryDate) return "Since the beginning";
-    return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(
-      new Date(anniversaryDate)
-    );
+    if (!anniversaryDate) return "Tap to set your anniversary";
+    try {
+      return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(
+        new Date(anniversaryDate)
+      );
+    } catch {
+      return new Date(anniversaryDate).toLocaleDateString();
+    }
   }, [anniversaryDate]);
 
   // 2. Flight / Reunion countdown
   const reunionStatus = useMemo(() => {
-    if (!reunionDate) return { days: 14, label: "14 days until we hug" };
+    if (!reunionDate) return null;
     const diff = reunionDate - Date.now();
     const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
     if (days > 1) return { days, label: `${days} days until we reunite` };
@@ -193,9 +197,9 @@ export default function LoveStoryTimeline({
         <div className="stat-card" onClick={() => setAnnivModalOpen(true)} role="button" tabIndex={0}>
           <div className="stat-top">
             <span className="stat-badge-icon">🗓️</span>
-            <span className="stat-edit-tag">Edit</span>
+            <span className="stat-edit-tag">{anniversaryDate ? "Edit" : "Set"}</span>
           </div>
-          <div className="stat-number">Day {daysTogether}</div>
+          <div className="stat-number">{daysTogether !== null ? `Day ${daysTogether}` : "Our Start"}</div>
           <div className="stat-label">of Our Love Story</div>
           <div className="stat-detail">{annivFormatted}</div>
         </div>
@@ -204,13 +208,13 @@ export default function LoveStoryTimeline({
         <div className="stat-card flight-card" onClick={() => setReunionModalOpen(true)} role="button" tabIndex={0}>
           <div className="stat-top">
             <span className="stat-badge-icon">✈️</span>
-            <span className="stat-edit-tag">Edit</span>
+            <span className="stat-edit-tag">{reunionDate ? "Edit" : "Set"}</span>
           </div>
           <div className="stat-number">
-            {reunionStatus.days > 0 ? `${reunionStatus.days} Days` : "Reunited!"}
+            {reunionStatus ? (reunionStatus.days > 0 ? `${reunionStatus.days} Days` : "Reunited!") : "Next Meet"}
           </div>
-          <div className="stat-label">{reunionStatus.label}</div>
-          <div className="stat-detail">{reunionDestination || "Reunion Destination"}</div>
+          <div className="stat-label">{reunionStatus ? reunionStatus.label : "Set reunion date"}</div>
+          <div className="stat-detail">{reunionDestination || "Tap to set destination"}</div>
         </div>
 
         {/* Call Hours Spent Together */}
@@ -252,11 +256,16 @@ export default function LoveStoryTimeline({
             timelineItems.map((item, _idx) => {
               if (item.type === "milestone") {
                 const m = item.data;
-                const dStr = new Intl.DateTimeFormat("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                }).format(new Date(m.date));
+                let dStr = "";
+                try {
+                  dStr = new Intl.DateTimeFormat("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  }).format(new Date(m.date));
+                } catch {
+                  dStr = new Date(m.date).toLocaleDateString();
+                }
 
                 return (
                   <div key={`m-${m.id}`} className="timeline-node milestone-node">
