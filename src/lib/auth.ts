@@ -1,6 +1,7 @@
 import type { D1Database } from "./d1";
 
-export const SESSION_COOKIE = "__Host-herz_session";
+export const SESSION_COOKIE =
+  process.env.NODE_ENV === "production" ? "__Host-herz_session" : "herz_session";
 const SESSION_DAYS = 30;
 // workerd rejects PBKDF2 above 100k iterations; stay at the platform ceiling.
 const ITERATIONS = 100_000;
@@ -86,19 +87,17 @@ export function readCookie(request: Request, name: string) {
 
   for (const part of header.split(";")) {
     const [key, ...rest] = part.trim().split("=");
-    if (key === name) return rest.join("=");
-  }
-  if (name === SESSION_COOKIE) {
-    for (const part of header.split(";")) {
-      const [key, ...rest] = part.trim().split("=");
-      if (key === "herz_session") return rest.join("=");
+    const k = key.trim();
+    if (k === name || k === "__Host-herz_session" || k === "herz_session") {
+      return rest.join("=");
     }
   }
   return null;
 }
 
 export function sessionCookie(token: string, maxAgeSeconds = SESSION_DAYS * 24 * 60 * 60) {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const isProd = process.env.NODE_ENV === "production";
+  const secure = isProd ? "; Secure" : "";
   return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSeconds}${secure}`;
 }
 
