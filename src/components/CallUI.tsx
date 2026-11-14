@@ -11,7 +11,7 @@ import {
   useTracks,
 } from "@livekit/components-react";
 import type { TrackReference } from "@livekit/components-react";
-import { ConnectionState, Track } from "livekit-client";
+import { ConnectionState, Track, LocalVideoTrack } from "livekit-client";
 import CallChat from "./CallChat";
 import CallControls from "./CallControls";
 import VideoStage from "./VideoStage";
@@ -206,51 +206,45 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
     const enabling = !cameraOn;
 
     try {
-      await room.localParticipant.setCameraEnabled(
-        enabling,
-        enabling ? { facingMode: facing } : undefined,
-      );
-    } catch (err) {
       if (enabling) {
-        console.warn("Direct camera enable failed, attempting clean recovery:", err);
-        // Step 1: Wait 250ms for Windows/macOS/mobile camera hardware lock to release
-        await new Promise((resolve) => setTimeout(resolve, 250));
+        const pub = room.localParticipant.getTrackPublication(Track.Source.Camera);
+        const existingTrack = pub?.track as LocalVideoTrack | undefined;
+        const trackEnded = Boolean(existingTrack?.mediaStreamTrack && existingTrack.mediaStreamTrack.readyState === "ended");
 
-        try {
-          // Retry direct enable with same facing mode
+        if (trackEnded && pub?.track) {
+          // Track is in ended state; unpublish stale track so LiveKit creates a fresh one
+          await room.localParticipant.unpublishTrack(pub.track, true).catch(() => undefined);
           await room.localParticipant.setCameraEnabled(true, { facingMode: facing });
-          return;
-        } catch (retryErr) {
-          console.warn("Direct retry failed, unpublishing stale track and republishing fresh:", retryErr);
-          try {
-            // Step 2: If previous track handle was stale/locked, unpublish and publish fresh
-            const existingPub = room.localParticipant.getTrackPublication(Track.Source.Camera);
-            if (existingPub?.track) {
-              await room.localParticipant.unpublishTrack(existingPub.track, true).catch(() => undefined);
-            }
-            await room.localParticipant.setCameraEnabled(true, { facingMode: facing });
-            return;
-          } catch (freshErr) {
-            console.error("Fresh camera publish failed:", freshErr);
-            // Step 3: If on a dual-camera device (mobile), try alternate camera as last resort
-            if (canFlip) {
-              try {
-                const alternate = facing === "user" ? "environment" : "user";
-                await room.localParticipant.setCameraEnabled(true, { facingMode: alternate });
-                setFacing(alternate);
-                return;
-              } catch {
-                // fall through to notice
-              }
-            }
+        } else {
+          await room.localParticipant.setCameraEnabled(true, { facingMode: facing });
+          // Verify track is live; if not, restart it
+          const currentPub = room.localParticipant.getTrackPublication(Track.Source.Camera);
+          const currentTrack = currentPub?.track as LocalVideoTrack | undefined;
+          if (currentTrack && currentTrack.mediaStreamTrack?.readyState === "ended") {
+            await currentTrack.restartTrack({ facingMode: facing });
           }
         }
+      } else {
+        await room.localParticipant.setCameraEnabled(false);
       }
-
-      setNotice("Camera is busy in another app or tab — close it and tap again.");
-      setTimeout(() => setNotice(null), 4000);
+    } catch (err) {
+      console.warn("Direct camera toggle failed, attempting clean recovery:", err);
+      if (enabling) {
+        try {
+          const pub = room.localParticipant.getTrackPublication(Track.Source.Camera);
+          if (pub?.track) {
+            await room.localParticipant.unpublishTrack(pub.track, true).catch(() => undefined);
+          }
+          await room.localParticipant.setCameraEnabled(true, { facingMode: facing });
+          return;
+        } catch (recoveryErr) {
+          console.error("Camera recovery failed:", recoveryErr);
+        }
+      }
+      setNotice(enabling ? "Camera could not start. Please check camera permissions." : "Could not turn camera off.");
+      setTimeout(() => setNotice(null), 3500);
     }
-  }, [cameraOn, canFlip, facing, room]);
+  }, [cameraOn, facing, room]);
 
   const toggleShare = useCallback(async () => {
     try {
