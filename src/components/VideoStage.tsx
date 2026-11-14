@@ -28,6 +28,8 @@ type Props = {
   camOn: boolean;
   canFlip: boolean;
   onFlipCamera: () => void;
+  effectsOpen?: boolean;
+  onToggleEffects?: () => void;
   bursts: Burst[];
   focusMode: "partner" | "self";
 };
@@ -52,6 +54,8 @@ export default function VideoStage({
   camOn,
   canFlip,
   onFlipCamera,
+  effectsOpen = false,
+  onToggleEffects,
   bursts,
   focusMode,
 }: Props) {
@@ -83,11 +87,28 @@ export default function VideoStage({
                   )}
                   <span className="face-tag">{partnerLabel}</span>
                 </div>
-                <div className="face-tile">
+                <div className="face-tile face-tile-self">
                   {localCam ? (
                     <VideoTrack trackRef={localCam} className="face-video mirror" playsInline />
                   ) : (
                     <div className="face-off">{initialOf(selfName)}</div>
+                  )}
+                  {onToggleEffects && (
+                    <button
+                      className={`tile-effects-btn ${effectsOpen ? "open" : ""}`}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleEffects();
+                      }}
+                      aria-label="Camera effects"
+                      aria-expanded={effectsOpen}
+                      title="Camera effects"
+                    >
+                      <span className="tile-effects-icon">
+                        <Icon name="sparkles" size={16} />
+                      </span>
+                    </button>
                   )}
                   <span className="face-tag">you</span>
                 </div>
@@ -171,6 +192,24 @@ export default function VideoStage({
               title="Switch camera"
             >
               <Icon name="flip" size={14} />
+            </button>
+          )}
+
+          {onToggleEffects && (
+            <button
+              className={`tile-effects-btn ${effectsOpen ? "open" : ""}`}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleEffects();
+              }}
+              aria-label="Camera effects"
+              aria-expanded={effectsOpen}
+              title="Camera effects"
+            >
+              <span className="tile-effects-icon">
+                <Icon name="sparkles" size={16} />
+              </span>
             </button>
           )}
 

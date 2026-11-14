@@ -29,6 +29,8 @@ export default function EffectsSheet({
   useEffect(() => {
     if (!isOpen) return;
 
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.stopPropagation();
@@ -39,6 +41,7 @@ export default function EffectsSheet({
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus?.();
     };
   }, [isOpen, onClose]);
 

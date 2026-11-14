@@ -624,6 +624,8 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
           isDucked={isDucked}
           syncEnabled={watchSynced}
           onSyncChange={handleWatchSyncChange}
+          effectsOpen={effectsOpen}
+          onToggleEffects={() => setEffectsOpen((prev) => !prev)}
           onReact={sendEmojiBurst}
           remoteCam={remoteCam}
           localCam={localCam}
@@ -656,6 +658,8 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
           camOn={cameraOn}
           canFlip={canFlip}
           onFlipCamera={flipCamera}
+          effectsOpen={effectsOpen}
+          onToggleEffects={() => setEffectsOpen((prev) => !prev)}
           bursts={bursts}
           focusMode={focusMode}
         />

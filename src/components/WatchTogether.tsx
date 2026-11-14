@@ -50,6 +50,8 @@ type Props = {
   micOn?: boolean;
   chatVisible?: boolean;
   doodleActive?: boolean;
+  effectsOpen?: boolean;
+  onToggleEffects?: () => void;
 };
 
 const ROMANTIC_SUGGESTIONS: { title: string; id: string; desc: string; type: MediaType }[] = [
@@ -251,6 +253,8 @@ export default function WatchTogether({
   partner,
   chatVisible = false,
   doodleActive = false,
+  effectsOpen = false,
+  onToggleEffects,
 }: Props) {
   // Synchronize server time on mount and periodically every 2 minutes
   useEffect(() => {
@@ -1345,11 +1349,28 @@ export default function WatchTogether({
             </div>
 
             {/* Your live camera */}
-            <div className="face-tile">
+            <div className="face-tile face-tile-self">
               {localCam ? (
                 <VideoTrack trackRef={localCam} className="face-video mirror" playsInline />
               ) : (
                 <div className="face-off">{initialOf(selfName)}</div>
+              )}
+              {onToggleEffects && (
+                <button
+                  className={`tile-effects-btn ${effectsOpen ? "open" : ""}`}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleEffects();
+                  }}
+                  aria-label="Camera effects"
+                  aria-expanded={effectsOpen}
+                  title="Camera effects"
+                >
+                  <span className="tile-effects-icon">
+                    <Icon name="sparkles" size={16} />
+                  </span>
+                </button>
               )}
               <span className="face-tag">you</span>
             </div>
