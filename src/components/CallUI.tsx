@@ -219,12 +219,24 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
       let dataUrl = "";
       if (activeVideo && activeVideo.videoWidth > 0) {
         const canvas = document.createElement("canvas");
-        canvas.width = Math.min(activeVideo.videoWidth, 800);
-        canvas.height = Math.round((canvas.width / activeVideo.videoWidth) * activeVideo.videoHeight);
+        const maxSide = 1280;
+        let w = activeVideo.videoWidth;
+        let h = activeVideo.videoHeight;
+        if (w > maxSide || h > maxSide) {
+          if (w >= h) {
+            h = Math.round((h * maxSide) / w);
+            w = maxSide;
+          } else {
+            w = Math.round((w * maxSide) / h);
+            h = maxSide;
+          }
+        }
+        canvas.width = w;
+        canvas.height = h;
         const ctx = canvas.getContext("2d");
         if (ctx) {
           ctx.drawImage(activeVideo, 0, 0, canvas.width, canvas.height);
-          dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+          dataUrl = canvas.toDataURL("image/jpeg", 0.8);
         }
       }
 

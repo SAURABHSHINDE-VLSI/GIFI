@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getDefaultThought, getThoughtsForMoment } from "@/lib/momentThoughts";
+import { resizeAndCompressImage } from "@/lib/imageCompress";
 
 export type Moment = {
   id: string;
@@ -158,6 +159,10 @@ async function renderAndDownloadPolaroid(moment: Moment, thoughtText: string) {
 export default function MomentsScrapbook({ isOpen, onClose }: Props) {
   const [moments, setMoments] = useState<Moment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [activePhoto, setActivePhoto] = useState<Moment | null>(null);
 
   // Lightbox state
@@ -172,11 +177,65 @@ export default function MomentsScrapbook({ isOpen, onClose }: Props) {
     fetch("/api/moments")
       .then((res) => res.json())
       .then((data) => {
-        if (data?.moments) setMoments(data.moments);
+        if (data?.moments) {
+          setMoments(data.moments);
+          setHasMore(Boolean(data.hasMore));
+        }
       })
       .catch(() => undefined)
       .finally(() => setLoading(false));
   }, [isOpen]);
+
+  async function loadMoreMoments() {
+    if (loadingMore || !hasMore || moments.length === 0) return;
+    setLoadingMore(true);
+    try {
+      const oldest = moments[moments.length - 1];
+      const res = await fetch(`/api/moments?before=${oldest.at}`);
+      const data = await res.json();
+      if (data?.moments) {
+        setMoments((curr) => [...curr, ...data.moments]);
+        setHasMore(Boolean(data.hasMore));
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      const compressedDataUrl = await resizeAndCompressImage(file, 1280, 0.8);
+      const res = await fetch("/api/moments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: compressedDataUrl,
+          caption: file.name.replace(/\.[^/.]+$/, "").slice(0, 50),
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || "Failed to upload photo");
+      }
+
+      const data = await res.json();
+      if (data?.moment) {
+        setMoments((curr) => [data.moment, ...curr]);
+      }
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : "Failed to upload photo");
+    } finally {
+      setIsUploading(false);
+      e.target.value = "";
+    }
+  }
 
   useEffect(() => {
     if (activePhoto) {
@@ -276,15 +335,44 @@ export default function MomentsScrapbook({ isOpen, onClose }: Props) {
             <h2>Our Moments</h2>
             <span className="moments-count">{moments.length} memories</span>
           </div>
-          <button
-            type="button"
-            className="moments-close-btn"
-            onClick={onClose}
-            aria-label="Close Scrapbook"
-          >
-            ×
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <label
+              className="lightbox-btn secondary"
+              style={{
+                cursor: isUploading ? "wait" : "pointer",
+                padding: "6px 14px",
+                fontSize: "13px",
+                borderRadius: "999px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              <span>{isUploading ? "Uploading…" : "+ Add Memory"}</span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={isUploading}
+                onChange={handleFileUpload}
+                style={{ display: "none" }}
+              />
+            </label>
+            <button
+              type="button"
+              className="moments-close-btn"
+              onClick={onClose}
+              aria-label="Close Scrapbook"
+            >
+              ×
+            </button>
+          </div>
         </div>
+
+        {uploadError && (
+          <div style={{ padding: "8px 16px", color: "#f87171", fontSize: "13px", textAlign: "center", background: "rgba(248,113,113,0.1)" }}>
+            {uploadError}
+          </div>
+        )}
 
         <div className="moments-body">
           {loading ? (
@@ -322,6 +410,20 @@ export default function MomentsScrapbook({ isOpen, onClose }: Props) {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {hasMore && (
+            <div style={{ textAlign: "center", padding: "24px 0 16px" }}>
+              <button
+                type="button"
+                className="lightbox-btn secondary"
+                onClick={loadMoreMoments}
+                disabled={loadingMore}
+                style={{ padding: "8px 24px", fontSize: "14px", borderRadius: "999px" }}
+              >
+                {loadingMore ? "Loading memories…" : "Load older memories"}
+              </button>
             </div>
           )}
         </div>
