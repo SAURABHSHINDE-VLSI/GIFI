@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LiveKitRoom } from "@livekit/components-react";
 import { VideoPresets } from "livekit-client";
+import { loadPrefs } from "@/lib/effects";
+import { getAudioCaptureOptions } from "@/lib/audioEffects";
 import CallUI from "./CallUI";
 import PreJoin from "./PreJoin";
 
@@ -87,6 +89,7 @@ export default function CallPage() {
           adaptiveStream: true,
           dynacast: true,
           videoCaptureDefaults: { resolution: VideoPresets.h1080.resolution },
+          audioCaptureDefaults: getAudioCaptureOptions(loadPrefs().noiseSuppression),
           publishDefaults: {
             simulcast: true,
             videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360],
