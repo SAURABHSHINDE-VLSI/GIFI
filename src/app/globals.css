@@ -1452,67 +1452,6 @@ button {
   }
 }
 
-/* YouTube Playback Controls Satellite Bar (Beside Main Dock, Separate Pill) */
-.yt-left-controls {
-  position: relative;
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px 8px;
-  border-radius: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: linear-gradient(180deg, rgba(38, 14, 28, 0.88), rgba(15, 6, 12, 0.94));
-  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  animation: ytLeftEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  flex-shrink: 0;
-}
-
-@keyframes ytLeftEnter {
-  from {
-    opacity: 0;
-    transform: translateX(-10px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0) scale(1);
-  }
-}
-
-/* Most Right Bottom Controls Satellite Bar: Reactions & Chat */
-.dock-satellite-right {
-  position: absolute;
-  right: 16px;
-  bottom: calc(8px + env(safe-area-inset-bottom));
-  z-index: 18;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px 8px;
-  border-radius: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: linear-gradient(180deg, rgba(38, 14, 28, 0.88), rgba(15, 6, 12, 0.94));
-  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  pointer-events: auto;
-  animation: ytRightEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  flex-shrink: 0;
-}
-
-@keyframes ytRightEnter {
-  from {
-    opacity: 0;
-    transform: translateX(10px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0) scale(1);
-  }
-}
-
 .dock {
   pointer-events: auto;
   display: flex;
@@ -1629,76 +1568,6 @@ button {
 
 .ctrl.heart-btn .ctrl-orb {
   color: var(--rose-soft);
-}
-
-/* YouTube Watch Together Sync Toggle in Dock */
-.ctrl.sync-ctrl .ctrl-orb {
-  position: relative;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.ctrl.sync-ctrl.active .ctrl-orb {
-  color: #06d6a0;
-  border-color: rgba(6, 214, 160, 0.65);
-  background: radial-gradient(circle at 50% 0%, rgba(6, 214, 160, 0.35), rgba(5, 150, 105, 0.18) 75%);
-  box-shadow: 0 0 0 3px rgba(6, 214, 160, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
-
-.ctrl.sync-ctrl.active:hover .ctrl-orb {
-  color: #34d399;
-  border-color: #06d6a0;
-  background: radial-gradient(circle at 50% 0%, rgba(6, 214, 160, 0.48), rgba(5, 150, 105, 0.26) 75%);
-  box-shadow: 0 0 18px rgba(6, 214, 160, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  transform: translateY(-1px) scale(1.04);
-}
-
-.ctrl.sync-ctrl.off .ctrl-orb {
-  color: rgba(255, 255, 255, 0.45);
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.ctrl.sync-ctrl.active .ctrl-label {
-  color: #06d6a0;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.ctrl.sync-ctrl.off .ctrl-label {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.sync-pulse-dot {
-  position: absolute;
-  top: 7px;
-  right: 7px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #06d6a0;
-  box-shadow: 0 0 6px #06d6a0;
-  animation: syncPulseDot 2s infinite ease-in-out;
-}
-
-@keyframes syncPulseDot {
-  0%, 100% {
-    transform: scale(0.9);
-    opacity: 0.85;
-  }
-  50% {
-    transform: scale(1.35);
-    opacity: 1;
-    box-shadow: 0 0 10px #06d6a0;
-  }
-}
-
-.sync-spinning svg {
-  animation: syncRotateAnim 0.75s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes syncRotateAnim {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 
 /* Glowing emerald dot for active reactions */
@@ -1821,13 +1690,6 @@ button {
     gap: 4px;
     padding: 7px 10px 5px;
     border-radius: 24px;
-  }
-
-  .dock-satellite-right {
-    right: 8px;
-    padding: 6px 8px 6px;
-    border-radius: 24px;
-    gap: 4px;
   }
 
   .dock-group {
@@ -3490,185 +3352,10 @@ button {
 
 
 /* When Doodle is active or browsing, completely hide YouTube controls to avoid overlapping */
-.watch-together-stage.doodle-active .watch-controls,
-.doodle-active .watch-controls,
-.watch-together-stage.browsing .watch-controls {
+.watch-together-stage.doodle-active .watch-controls-wrap,
+.doodle-active .watch-controls-wrap,
+.watch-together-stage.browsing .watch-controls-wrap {
   display: none !important;
-}
-
-.watch-controls {
-  position: absolute;
-  right: 16px;
-  bottom: calc(10px + env(safe-area-inset-bottom));
-  z-index: 45;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px 14px;
-  background: linear-gradient(180deg, rgba(28, 10, 22, 0.88), rgba(16, 5, 13, 0.95));
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(246, 169, 189, 0.22);
-  border-radius: 9999px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.06), 0 0 35px rgba(239, 95, 134, 0.15);
-  pointer-events: auto;
-  scrollbar-width: none;
-  max-width: calc(100vw - 32px);
-}
-
-@media (max-width: 768px) {
-  .watch-controls {
-    right: auto;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: calc(76px + env(safe-area-inset-bottom));
-    width: auto;
-    max-width: calc(100vw - 20px);
-    padding: 6px 10px;
-    gap: 4px;
-  }
-}
-
-.watch-controls::-webkit-scrollbar {
-  display: none;
-}
-
-.watch-ctrl {
-  flex: none;
-  width: 38px;
-  height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.07);
-  color: #f8edf3;
-  cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-}
-
-.watch-ctrl:hover {
-  background: rgba(255, 255, 255, 0.16);
-  transform: translateY(-1px);
-}
-
-.watch-ctrl:active {
-  transform: scale(0.94);
-}
-
-.watch-ctrl.primary {
-  width: 46px;
-  height: 46px;
-  border-color: transparent;
-  background: linear-gradient(135deg, #e8608a, #c8346a);
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(200, 52, 106, 0.45);
-}
-
-.watch-ctrl.primary:hover {
-  background: linear-gradient(135deg, #f0709a, #d13d76);
-}
-
-.watch-ctrl.danger {
-  color: #ffc2c2;
-  border-color: rgba(239, 68, 68, 0.38);
-  background: rgba(239, 68, 68, 0.16);
-}
-
-.watch-ctrl.danger:hover {
-  background: rgba(239, 68, 68, 0.32);
-}
-
-.watch-ctrl-time {
-  flex: none;
-  padding: 0 8px;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
-  letter-spacing: 0.02em;
-}
-
-.watch-sync-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 10px;
-  height: 38px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.18s ease;
-  user-select: none;
-}
-
-.watch-sync-btn.synced {
-  background: rgba(95, 208, 138, 0.16);
-  border: 1px solid rgba(95, 208, 138, 0.42);
-  color: #5fd08a;
-}
-
-.watch-sync-btn.synced:hover {
-  background: rgba(95, 208, 138, 0.26);
-  border-color: rgba(95, 208, 138, 0.6);
-}
-
-.watch-sync-btn.off {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: var(--muted);
-}
-
-.watch-sync-btn.off:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--foreground);
-}
-
-.watch-sync-btn.disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--muted);
-}
-
-.watch-sync-btn:focus-visible {
-  outline: 2px solid #5fd08a;
-  outline-offset: 2px;
-}
-
-.watch-sync-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #5fd08a;
-  box-shadow: 0 0 6px rgba(95, 208, 138, 0.8);
-  animation: syncDotPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-.watch-sync-btn.off .watch-sync-dot {
-  background: #888;
-  box-shadow: none;
-  animation: none;
-}
-
-.watch-sync-dot.disabled {
-  background: #666;
-  box-shadow: none;
-  animation: none;
-}
-
-@keyframes syncDotPulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.35);
-    opacity: 0.6;
-  }
 }
 
 .watch-sync-notice {
@@ -3918,14 +3605,6 @@ button {
   transform: scale(0.92);
 }
 
-.watch-stage-sync-bar .sync-badge {
-  font-size: 10.5px;
-  color: #06d6a0;
-  font-weight: 500;
-  white-space: nowrap;
-  padding-inline: 2px 4px;
-}
-
 .heart-ctrl-wrap {
   position: relative;
   display: inline-flex;
@@ -4037,12 +3716,6 @@ button {
 }
 
 @media (max-width: 768px) {
-  .watch-stage-sync-bar {
-    max-width: 95%;
-    overflow-x: auto;
-    padding: 6px 10px;
-    gap: 6px;
-  }
   .watch-reactions {
     gap: 1px;
   }
@@ -4163,37 +3836,6 @@ button {
   aspect-ratio: 16 / 9;
   border: none;
   background: #000;
-}
-
-.watch-sync-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  background: rgba(18, 9, 16, 0.9);
-}
-
-.sync-btn {
-  padding: 8px 18px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #ff2e88, #e01869);
-  border: none;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
-}
-
-.sync-btn:hover {
-  opacity: 0.94;
-  transform: scale(1.02);
-}
-
-.sync-badge {
-  font-size: 12px;
-  color: #06d6a0;
-  font-weight: 500;
 }
 
 .watch-picker {
@@ -7038,18 +6680,6 @@ button {
   background: rgba(255, 46, 136, 0.25);
   border-color: #ff2e88;
   transform: scale(1.1);
-}
-
-.watch-ctrl-note {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 0 6px;
-  font-size: 11px;
-  line-height: 1.3;
-  color: var(--muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 
