@@ -25,6 +25,8 @@ type Props = {
   onSelectEmoji: (emoji: string) => void;
   gesturesEnabled: boolean;
   onToggleGestures: () => void;
+  effectsOpen: boolean;
+  onToggleEffects: () => void;
   chatVisible: boolean;
   onToggleChat: () => void;
   unreadCount: number;
@@ -47,6 +49,8 @@ export default function CallControls({
   onSelectEmoji,
   gesturesEnabled,
   onToggleGestures,
+  effectsOpen,
+  onToggleEffects,
   chatVisible,
   onToggleChat,
   unreadCount,
@@ -200,6 +204,21 @@ export default function CallControls({
               <span className="ctrl-label">react</span>
             </button>
           </div>
+
+          <button
+            className={`ctrl ${effectsOpen ? "active" : ""}`}
+            type="button"
+            onClick={onToggleEffects}
+            aria-label="Call audio and video effects"
+            title="Effects & Audio"
+          >
+            <span className="ctrl-slot">
+              <span className="ctrl-orb">
+                <Icon name="sliders" size={18} />
+              </span>
+            </span>
+            <span className="ctrl-label">effects</span>
+          </button>
 
           <button
             className={`ctrl chat-ctrl ${chatVisible ? "active" : ""}`}

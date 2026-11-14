@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createLocalVideoTrack, LocalVideoTrack } from "livekit-client";
 import { Icon } from "./Icons";
 import { initialOf } from "@/lib/ui";
 import { useCanFlipCamera } from "@/lib/useCanFlipCamera";
+import { loadPrefs, savePrefs, type EffectsPrefs } from "@/lib/effects";
+import { useBackgroundEffect } from "@/lib/useBackgroundEffect";
+import EffectsControls from "./EffectsControls";
 
 type Props = {
   displayName: string;
@@ -27,34 +31,54 @@ export default function PreJoin({
   const [camError, setCamError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
+  const [localVideoTrack, setLocalVideoTrack] = useState<LocalVideoTrack | null>(null);
+  const [prefs, setPrefs] = useState<EffectsPrefs>(() => loadPrefs());
+
+  const { supported: blurSupported } = useBackgroundEffect({
+    track: camOn ? localVideoTrack : undefined,
+    mode: prefs.background,
+    onModeChange: (nextMode) => {
+      setPrefs((curr) => {
+        const next = { ...curr, background: nextMode };
+        savePrefs(next);
+        return next;
+      });
+    },
+  });
+
   useEffect(() => {
-    if (!camOn) return;
+    if (!camOn) {
+      setLocalVideoTrack(null);
+      return;
+    }
 
     let cancelled = false;
-    let stream: MediaStream | null = null;
+    let trackInstance: LocalVideoTrack | null = null;
+    const videoEl = videoRef.current;
     setCamError(null);
 
-    navigator.mediaDevices
-      ?.getUserMedia({ video: { facingMode: facing }, audio: false })
-      .then((nextStream) => {
+    createLocalVideoTrack({ facingMode: facing })
+      .then((track) => {
         if (cancelled) {
-          nextStream.getTracks().forEach((track) => track.stop());
+          track.stop();
           return;
         }
-        stream = nextStream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = nextStream;
-          videoRef.current.play().catch(() => undefined);
+        trackInstance = track;
+        setLocalVideoTrack(track);
+        if (videoEl) {
+          track.attach(videoEl);
         }
       })
       .catch(() => {
         if (!cancelled) setCamError("Camera is blocked. You can still join with it off.");
       });
 
-    const videoEl = videoRef.current;
     return () => {
       cancelled = true;
-      stream?.getTracks().forEach((track) => track.stop());
+      setLocalVideoTrack(null);
+      if (trackInstance) {
+        trackInstance.stop();
+      }
       if (videoEl) {
         try {
           videoEl.pause();
@@ -67,6 +91,9 @@ export default function PreJoin({
   }, [camOn, facing]);
 
   function submit() {
+    if (localVideoTrack) {
+      localVideoTrack.stop();
+    }
     const video = videoRef.current;
     if (video?.srcObject) {
       (video.srcObject as MediaStream).getTracks().forEach((track) => track.stop());
@@ -145,6 +172,17 @@ export default function PreJoin({
                 <Icon name={camOn ? "camera" : "camera-off"} size={16} />
                 {camOn ? "Camera" : "Camera off"}
               </button>
+            </div>
+
+            <div className="prejoin-effects-row">
+              <EffectsControls
+                prefs={prefs}
+                onPrefsChange={(next) => {
+                  setPrefs(next);
+                  savePrefs(next);
+                }}
+                blurSupported={blurSupported}
+              />
             </div>
 
             {camError && <p className="note">{camError}</p>}

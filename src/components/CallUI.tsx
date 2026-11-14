@@ -19,6 +19,10 @@ import PipView from "./PipView";
 import WatchTogether from "./WatchTogether";
 import LoveCanvas from "./LoveCanvas";
 import MomentsScrapbook from "./MomentsScrapbook";
+import EffectsSheet from "./EffectsSheet";
+import { loadPrefs, savePrefs, type EffectsPrefs } from "@/lib/effects";
+import { applyNoiseSuppression } from "@/lib/audioEffects";
+import { useBackgroundEffect } from "@/lib/useBackgroundEffect";
 import { Icon } from "./Icons";
 import { formatDuration } from "@/lib/ui";
 import { useCallChat } from "@/lib/callChat";
@@ -93,6 +97,8 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
   const [gesturesEnabled, setGesturesEnabled] = useState(false);
   const [callSoundMuted, setCallSoundMuted] = useState(false);
   const [focusMode, setFocusMode] = useState<"partner" | "self">("partner");
+  const [effectsOpen, setEffectsOpen] = useState(false);
+  const [prefs, setPrefs] = useState<EffectsPrefs>(() => loadPrefs());
 
   const stageRef = useRef<HTMLDivElement | null>(null);
 
@@ -195,6 +201,40 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
   }, [micOn, room]);
 
   const cameraOn = Boolean(isCameraEnabled && (!localCamera || !localCamera.isMuted));
+
+  const localVideoTrack = localCam?.publication?.track as LocalVideoTrack | undefined;
+  const { supported: blurSupported } = useBackgroundEffect({
+    track: cameraOn ? localVideoTrack : undefined,
+    mode: prefs.background,
+    onModeChange: (nextMode) => {
+      setPrefs((curr) => {
+        const next = { ...curr, background: nextMode };
+        savePrefs(next);
+        return next;
+      });
+    },
+    onError: (msg) => {
+      setNotice(msg);
+      setTimeout(() => setNotice(null), 3500);
+    },
+  });
+
+  const handlePrefsChange = useCallback(
+    async (nextPrefs: EffectsPrefs) => {
+      const prevNoise = prefs.noiseSuppression;
+      setPrefs(nextPrefs);
+      savePrefs(nextPrefs);
+
+      if (prevNoise !== nextPrefs.noiseSuppression) {
+        try {
+          await applyNoiseSuppression(room, nextPrefs.noiseSuppression);
+        } catch (err) {
+          console.warn("Could not apply noise suppression:", err);
+        }
+      }
+    },
+    [prefs.noiseSuppression, room],
+  );
 
   // A watch session arriving from the partner should open the player on this side.
   const handleWatchVideoState = useCallback((hasVideo: boolean) => {
@@ -492,6 +532,8 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
       )}
 
       <CallControls
+        effectsOpen={effectsOpen}
+        onToggleEffects={() => setEffectsOpen((v) => !v)}
         micOn={micOn}
         camOn={cameraOn}
         sharing={sharing}
@@ -548,6 +590,13 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
 
       <LoveCanvas room={room} isActive={doodleActive} onClose={() => setDoodleActive(false)} watchActive={watchActive} />
       <MomentsScrapbook isOpen={scrapbookOpen} onClose={() => setScrapbookOpen(false)} />
+      <EffectsSheet
+        isOpen={effectsOpen}
+        onClose={() => setEffectsOpen(false)}
+        prefs={prefs}
+        onPrefsChange={handlePrefsChange}
+        blurSupported={blurSupported}
+      />
 
       {/* Floating burst layer for hearts & emoji bursts */}
       <div className="burst-layer" aria-hidden="true">
