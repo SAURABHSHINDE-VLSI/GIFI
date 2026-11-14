@@ -108,10 +108,15 @@ export function useBackgroundEffect({
         setError(null);
 
         if (!processorRef.current) {
-          // Create processor once for this track
+          // Create processor once for this track with self-hosted MediaPipe assets
+          const origin = typeof window !== "undefined" ? window.location.origin : "";
           const processor = BackgroundProcessor({
             mode: "background-blur",
             blurRadius,
+            assetPaths: {
+              tasksVisionFileSet: `${origin}/mediapipe/wasm`,
+              modelAssetPath: `${origin}/models/selfie_segmenter.tflite`,
+            },
           });
 
           if (isCancelled || opId !== operationSeqRef.current) {
