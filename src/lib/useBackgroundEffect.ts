@@ -174,6 +174,30 @@ export function useBackgroundEffect({
     };
   }, [supported, track, mode, onModeChange, onError]);
 
+  // Keep outgoing video streaming without freezing while the tab is hidden
+  useEffect(() => {
+    if (!supported || typeof document === "undefined") return;
+
+    const handleVisibility = () => {
+      const proc = processorRef.current;
+      if (!proc || mode === "off") return;
+
+      if (document.hidden) {
+        // Disable blur while tab is hidden so video doesn't freeze in background tabs
+        proc.switchTo({ mode: "disabled" }).catch(() => undefined);
+      } else {
+        // Restore blur when tab becomes visible again
+        const radius = getBlurRadius(mode);
+        proc.switchTo({ mode: "background-blur", blurRadius: radius }).catch(() => undefined);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [supported, mode]);
+
   // Clean up processor on complete unmount of the hook
   useEffect(() => {
     return () => {

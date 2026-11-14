@@ -86,7 +86,9 @@ export default function CallPage() {
         audio={credentials.audio}
         video={credentials.video}
         options={{
-          adaptiveStream: true,
+          adaptiveStream: {
+            pauseVideoInBackground: false,
+          },
           dynacast: true,
           videoCaptureDefaults: { resolution: VideoPresets.h1080.resolution },
           audioCaptureDefaults: getAudioCaptureOptions(loadPrefs().noiseSuppression),

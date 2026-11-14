@@ -276,6 +276,7 @@ export function useGestureReactions({
     const detect = () => {
       if (
         stopped ||
+        (typeof document !== "undefined" && document.hidden) ||
         (!handLandmarker && !faceLandmarker) ||
         video.readyState < 2 ||
         video.paused ||
