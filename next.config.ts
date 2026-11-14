@@ -21,7 +21,7 @@ const cspHeader = [
   "media-src 'self' blob:",
   "img-src 'self' data: blob: https://i.ytimg.com https://*.scdn.co https://*.spotifycdn.com",
   "worker-src 'self' blob:",
-  "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com https://*.youtube.com https://*.spotify.com https://netmirror.app blob:",
+  "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com https://*.youtube.com https://*.spotify.com blob:",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
