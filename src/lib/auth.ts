@@ -1,7 +1,6 @@
 import type { D1Database } from "./d1";
 
-export const SESSION_COOKIE =
-  process.env.NODE_ENV === "production" ? "__Host-herz_session" : "herz_session";
+export const SESSION_COOKIE = "herz_session";
 const SESSION_DAYS = 30;
 // workerd rejects PBKDF2 above 100k iterations; stay at the platform ceiling.
 const ITERATIONS = 100_000;

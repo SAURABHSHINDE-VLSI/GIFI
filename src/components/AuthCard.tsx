@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Icon } from "./Icons";
 
 type Mode = "login" | "signup";
 
 export default function AuthCard() {
-  const router = useRouter();
   const [mode, setMode] = useState<Mode>("login");
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -16,12 +14,12 @@ export default function AuthCard() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    fetch("/api/me")
+    fetch("/api/me", { cache: "no-store", credentials: "include" })
       .then((response) => {
-        if (response.ok) router.replace("/app");
+        if (response.ok) window.location.href = "/app";
       })
       .catch(() => undefined);
-  }, [router]);
+  }, []);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -39,6 +37,7 @@ export default function AuthCard() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
+        credentials: "include",
       });
       const data = await response.json().catch(() => ({}));
 
@@ -46,7 +45,7 @@ export default function AuthCard() {
         throw new Error(data?.message ?? "Something went wrong.");
       }
 
-      router.replace("/app");
+      window.location.href = "/app";
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Something went wrong.");
     } finally {

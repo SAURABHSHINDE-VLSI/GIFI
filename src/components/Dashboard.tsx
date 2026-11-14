@@ -61,9 +61,12 @@ export default function Dashboard() {
   }, []);
 
   async function load() {
-    const response = await fetch("/api/me");
+    const response = await fetch("/api/me", {
+      cache: "no-store",
+      credentials: "include",
+    });
     if (!response.ok) {
-      router.replace("/");
+      window.location.href = "/";
       return;
     }
     const data: Me = await response.json();

@@ -11,7 +11,13 @@ export async function GET(request: Request) {
   const user = await currentUser(db, request);
 
   if (!user) {
-    return NextResponse.json({ user: null }, { status: 401 });
+    return NextResponse.json(
+      { user: null },
+      {
+        status: 401,
+        headers: { "cache-control": "no-store, no-cache, must-revalidate" },
+      },
+    );
   }
 
   const partner = await partnerFor(db, user);
