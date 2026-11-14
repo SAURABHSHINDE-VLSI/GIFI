@@ -290,11 +290,75 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
   }, [cameraOn, facing, room]);
 
   const toggleShare = useCallback(async () => {
+    if (sharing) {
+      try {
+        const screenVideoPub = room.localParticipant.getTrackPublication(Track.Source.ScreenShare);
+        const screenAudioPub = room.localParticipant.getTrackPublication(Track.Source.ScreenShareAudio);
+        if (screenVideoPub?.track) {
+          screenVideoPub.track.stop();
+          await room.localParticipant.unpublishTrack(screenVideoPub.track, true).catch(() => undefined);
+        }
+        if (screenAudioPub?.track) {
+          screenAudioPub.track.stop();
+          await room.localParticipant.unpublishTrack(screenAudioPub.track, true).catch(() => undefined);
+        }
+        await room.localParticipant.setScreenShareEnabled(false);
+      } catch {
+        setNotice("Could not stop screen share.");
+        setTimeout(() => setNotice(null), 3000);
+      }
+      return;
+    }
+
+    let seenHint = false;
     try {
-      await room.localParticipant.setScreenShareEnabled(!sharing);
+      seenHint = typeof window !== "undefined" && Boolean(localStorage.getItem("herz:sharehint"));
+    } catch {
+      // ignore
+    }
+    if (!seenHint) {
+      try {
+        localStorage.setItem("herz:sharehint", "1");
+      } catch {
+        // ignore
+      }
+      setNotice("To share sound, pick a Chrome or Edge tab and tick 'Also share tab audio'.");
+      setTimeout(() => setNotice(null), 5000);
+    }
+
+    const captureOptions: Parameters<typeof room.localParticipant.setScreenShareEnabled>[1] = {
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        restrictOwnAudio: true,
+      },
+      systemAudio: "include",
+      surfaceSwitching: "include",
+      selfBrowserSurface: "exclude",
+    };
+
+    try {
+      await room.localParticipant.setScreenShareEnabled(true, captureOptions);
+      const screenAudioPub = room.localParticipant.getTrackPublication(Track.Source.ScreenShareAudio);
+      if (!screenAudioPub) {
+        setNotice("Sharing without sound. Next time choose a browser tab and tick 'Also share tab audio'.");
+        setTimeout(() => setNotice(null), 6000);
+      }
     } catch {
       setNotice("Screen sharing was cancelled or unavailable.");
       setTimeout(() => setNotice(null), 3000);
+    }
+  }, [sharing, room]);
+
+  // Clean up any lingering screen share audio track when screen sharing ends
+  useEffect(() => {
+    if (!sharing) {
+      const audioPub = room.localParticipant.getTrackPublication(Track.Source.ScreenShareAudio);
+      if (audioPub?.track) {
+        audioPub.track.stop();
+        room.localParticipant.unpublishTrack(audioPub.track, true).catch(() => undefined);
+      }
     }
   }, [sharing, room]);
 
