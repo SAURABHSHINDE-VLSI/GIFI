@@ -10,6 +10,9 @@ HERZ is an intimate, private two-person video-calling app built for couples. Eac
 - **In-Call Chat & Photo Sharing**: Real-time messaging with delivered/seen receipts and image chunking.
 - **Expressive Reactions**: Floating heart bursts and flying kisses with sound effects.
 - **Smart Voice Ducking**: Media automatically lowers to 20% volume when either partner speaks so voices stay crystal clear.
+- **Local Background Blur**: Privacy blur (Off / Light / Strong) powered by client-side MediaPipe WASM segmentation.
+- **Microphone Noise Suppression**: Browser-native audio noise filtering with persistent echo cancellation.
+- **Picture-in-Picture & Auto-Minimize**: Floating Document PiP window with camera/screen tiles, in-PiP controls, and auto-minimize on tab switch.
 
 ## The Stack
 - **Framework**: Next.js 16 (App Router)
@@ -105,6 +108,61 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
   ```bash
   node scripts/kick-room.js <roomName>
   ```
+
+---
+
+## Effects (Blur and Noise Suppression)
+
+HERZ provides real-time local camera background blur and microphone noise suppression. Both effects can be configured during the pre-join preview and dynamically toggled during an active call via the in-call Effects dock button.
+
+### 1. Camera Background Blur
+- **Local Device Processing**: Segmentation is computed client-side using `@livekit/track-processors` (pinned to `0.8.2`) powered by Google MediaPipe's Selfie Segmentation model via WebAssembly. Video frames never leave your local device for effect processing.
+- **Modes**:
+  - `Off`: Processor is stopped and detached to preserve CPU/GPU resources.
+  - `Light`: Blur radius 10px for subtle background softening.
+  - `Strong`: Blur radius 20px for complete background privacy.
+- **Self-Hosted Assets**:
+  - MediaPipe Tasks Vision WASM files: `/mediapipe/wasm/` (`vision_wasm_internal.wasm`, `vision_wasm_internal.js`, `vision_wasm_nosimd_internal.wasm`, `vision_wasm_nosimd_internal.js`).
+  - Selfie Segmentation TFLite Model: `/models/selfie_segmenter.tflite` (~249 KB).
+  - Assets and models are licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+- **Browser & Device Support Limits**:
+  - Requires WebAssembly and SIMD support in the browser. Checked at runtime via `supportsBackgroundProcessors()`.
+  - If unsupported, the blur controls gracefully degrade and remain hidden.
+  - Devices with 4 or fewer logical CPU cores (`navigator.hardwareConcurrency <= 4`) display an advisory notice ("May slow older devices.").
+  - When the browser tab is hidden, background processing is paused automatically to conserve battery and CPU.
+
+### 2. Microphone Noise Suppression
+- **Browser-Native Audio Processing**: Utilizes standard browser audio constraints (`noiseSuppression: true | false`, `echoCancellation: true`, `autoGainControl: true`) without external paid services or cloud audio processing.
+- **Echo Cancellation**: Permanently enabled to ensure echo-free audio during Watch Together sessions played over device speakers.
+- **Seamless Re-acquisition**: Toggling noise suppression restarts the local microphone track (`audioTrack.restartTrack()`) with the updated constraints while preserving the active mute state without audible clicks or unmuting flashes.
+
+### 3. Preferences Persistence
+- User selections are strictly validated and stored locally in browser storage (`herz:effects` key in `localStorage`), automatically remembered across sessions and reloaded upon joining.
+
+---
+
+## Minimize (Picture-in-Picture)
+
+HERZ allows users to multitask while keeping the video call alive in a floating window.
+
+### 1. Document Picture-in-Picture (Mode A)
+- Available on Chromium browsers supporting the Document Picture-in-Picture API (Chrome / Edge 116+).
+- Opens an interactive, always-on-top window that renders a custom floating call interface with cloned stylesheets.
+- **Adaptive Multi-Track Layout**:
+  - Video Call view: Displays the partner's camera feed with local user corner tile.
+  - Screen Share view: Elevates the partner's screen share to full width with partner camera tile overlaid.
+- **Interactive Controls**: Non-blocking in-PiP mic toggle, camera toggle, Watch Together playback controls, and a safe two-step "End Call" confirmation.
+
+### 2. Standard Video Picture-in-Picture Fallback (Mode B)
+- On browsers that do not support Document PiP (such as Safari and Firefox), the app falls back to HTMLVideoElement Picture-in-Picture (`video.requestPictureInPicture()`) on the remote video stream.
+
+### 3. Auto-Minimize on Tab Switch
+- Configurable toggle in the Effects popover ("Auto-minimize when I switch tabs"), remembered in `localStorage` under `herz:autopip` (defaults to `true`).
+- Automatically transitions the active call to Picture-in-Picture when switching away from the tab (`visibilitychange` listener), provided Document PiP permission is granted.
+
+### 4. Watch Together in PiP
+- Cross-origin iframe restrictions prevent the YouTube video player itself from floating inside the PiP window.
+- However, YouTube audio continues streaming seamlessly in the background, and the PiP window provides synchronized playback controls (Play/Pause, Rewind, title display) to control the shared session without returning to the main tab.
 
 ---
 
