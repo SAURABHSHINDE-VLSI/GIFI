@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/d1";
 import { currentUser } from "@/lib/auth";
 import { checkSameOrigin } from "@/lib/security";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -196,6 +197,18 @@ export async function POST(request: Request) {
 
   if (!user.pair_id) {
     return NextResponse.json({ message: "No partner paired." }, { status: 400 });
+  }
+
+  // Rate-limit POST (60 actions per hour per user)
+  const rateLimit = await checkRateLimit(db, `ambient:${user.id}`, 60, 3600);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { message: "Too many actions. Please slow down and try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rateLimit.retryAfterSeconds ?? 60) },
+      },
+    );
   }
 
   const pairId = user.pair_id;

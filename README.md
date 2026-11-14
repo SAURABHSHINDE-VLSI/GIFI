@@ -105,3 +105,34 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
   ```bash
   node scripts/kick-room.js <roomName>
   ```
+
+---
+
+## Security Notes
+
+- **Content Security Policy (CSP)**:
+  Configured in `next.config.ts` via response headers.
+  - `default-src 'self'`
+  - `script-src`: Restricts script execution. In production, `'unsafe-eval'` is completely removed; `'wasm-unsafe-eval'` is permitted for self-hosted MediaPipe WASM hand gesture tracking, and `'unsafe-inline'` is retained for OpenNext client bootstrap scripts.
+  - `frame-src`: Restricted strictly to verified embed origins: `https://www.youtube.com`, `https://www.youtube-nocookie.com`, and `https://open.spotify.com`. Third-party proxy domains (e.g. Netmirror) are completely disallowed.
+  - `img-src`: Restricted to `'self' data: blob: https://i.ytimg.com https://i.scdn.co`.
+  - `connect-src`: Restricted to `'self'` and the validated LiveKit WebSocket/HTTPS origins configured in environment variables.
+  - `frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: strict-origin-when-cross-origin`.
+
+- **Rate Limiting**:
+  Stored in Cloudflare D1 via the `rate_limits` table:
+  - **Login**: Max 10 attempts per 15 minutes per username + IP.
+  - **Sign-up**: Max 5 registrations per hour per IP.
+  - **Pairing (Join)**: Max 10 attempts per 15 minutes per user + IP.
+  - **Password Change**: Max 5 attempts per 15 minutes per user + IP.
+  - **Moments Upload**: Max 30 photos per hour per user.
+  - **Ambient Actions**: Max 60 interactions per hour per user.
+  - All rate-limited routes return HTTP `429 Too Many Requests` with friendly guidance and a standard `Retry-After` header.
+
+- **Origin & Session Protection**:
+  - Mutating API endpoints require matching `Origin` and `Host` headers (`checkSameOrigin`).
+  - Session cookies use the prefix `__Host-herz_session` with `Path=/`, `HttpOnly`, `SameSite=Lax`, and `Secure` in production environments.
+
+- **LiveKit WebRTC & SFU Privacy**:
+  - Audio, video, and data channel messages are relayed through the **LiveKit SFU (Selective Forwarding Unit)**. While encrypted in transit using standard WebRTC DTLS-SRTP, streams pass through the LiveKit server infrastructure and are **not end-to-end encrypted (E2EE)** peer-to-peer.
+  - Room access tokens are cryptographically signed on the server and scoped exclusively to the paired couple's room ID.

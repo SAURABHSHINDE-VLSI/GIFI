@@ -41,13 +41,13 @@ export async function POST(request: Request) {
 
   const ip = getClientIp(request);
   const rateLimitKey = `signup:${ip}`;
-  const rateLimit = await checkRateLimit(db, rateLimitKey, 10, 15 * 60);
+  const rateLimit = await checkRateLimit(db, rateLimitKey, 5, 3600);
   if (!rateLimit.allowed) {
     return NextResponse.json(
-      { message: "Too many sign-up attempts. Please wait a few minutes and try again." },
+      { message: "Too many sign-up attempts. Please wait an hour and try again." },
       {
         status: 429,
-        headers: { "Retry-After": String(rateLimit.retryAfterSeconds ?? 60) },
+        headers: { "Retry-After": String(rateLimit.retryAfterSeconds ?? 3600) },
       },
     );
   }
