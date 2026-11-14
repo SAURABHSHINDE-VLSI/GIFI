@@ -6,6 +6,7 @@ import { RoomEvent } from "livekit-client";
 import { VideoTrack } from "@livekit/components-react";
 import type { TrackReference } from "@livekit/components-react";
 import { initialOf } from "@/lib/ui";
+import { serverNow, resyncServerTime } from "@/lib/serverTime";
 import { Icon } from "./Icons";
 import {
   buildSpotifyEmbedUrl,
@@ -220,7 +221,7 @@ export function formatClockTime(totalSeconds: number): string {
 export function computeClockTime(clock: SharedWatchClock | null): number {
   if (!clock || !clock.videoId) return 0;
   if (!clock.isPlaying) return Math.max(0, clock.baseTime);
-  const elapsed = Math.max(0, (Date.now() - clock.epochTimestamp) / 1000);
+  const elapsed = Math.max(0, (serverNow() - clock.epochTimestamp) / 1000);
   return Math.max(0, clock.baseTime + elapsed);
 }
 
@@ -262,6 +263,15 @@ export default function WatchTogether({
   chatVisible = false,
   doodleActive = false,
 }: Props) {
+  // Synchronize server time on mount and periodically every 2 minutes
+  useEffect(() => {
+    resyncServerTime().catch(() => undefined);
+    const interval = setInterval(() => {
+      resyncServerTime().catch(() => undefined);
+    }, 120000);
+    return () => clearInterval(interval);
+  }, []);
+
   const [clock, setClock] = useState<SharedWatchClock | null>(null);
   const clockRef = useRef<SharedWatchClock | null>(null);
   useEffect(() => {
@@ -370,9 +380,9 @@ export default function WatchTogether({
         videoId: id,
         title: safeTitle,
         baseTime: safeStart,
-        epochTimestamp: Date.now(),
+        epochTimestamp: serverNow(),
         isPlaying: true,
-        version: Date.now(),
+        version: serverNow(),
         mediaType,
       };
 
@@ -414,9 +424,9 @@ export default function WatchTogether({
       videoId: cur.videoId,
       title: cur.title,
       baseTime: curTime,
-      epochTimestamp: Date.now(),
+      epochTimestamp: serverNow(),
       isPlaying: nextIsPlaying,
-      version: Date.now(),
+      version: serverNow(),
       mediaType: cur.mediaType,
     };
 
@@ -453,7 +463,7 @@ export default function WatchTogether({
       t: "watch_behind_sync_req",
       localTime: localActual,
       videoId: cur.videoId,
-      senderEpoch: Date.now(),
+      senderEpoch: serverNow(),
     });
   }, [broadcastWatch]);
 
@@ -482,9 +492,9 @@ export default function WatchTogether({
         videoId: cur.videoId,
         title: cur.title,
         baseTime: targetTime,
-        epochTimestamp: Date.now(),
+        epochTimestamp: serverNow(),
         isPlaying: cur.isPlaying,
-        version: Date.now(),
+        version: serverNow(),
         mediaType: cur.mediaType,
       };
 
@@ -603,9 +613,9 @@ export default function WatchTogether({
           videoId: cur.videoId,
           title: cur.title,
           baseTime: computeClockTime(cur),
-          epochTimestamp: Date.now(),
+          epochTimestamp: serverNow(),
           isPlaying: cur.isPlaying,
-          version: Date.now(),
+          version: serverNow(),
           mediaType: cur.mediaType,
         },
         reason: "heartbeat",
@@ -676,9 +686,9 @@ export default function WatchTogether({
               videoId: cur.videoId,
               title: cur.title,
               baseTime: activeTime,
-              epochTimestamp: Date.now(),
+              epochTimestamp: serverNow(),
               isPlaying: cur.isPlaying,
-              version: Date.now(),
+              version: serverNow(),
               mediaType: cur.mediaType,
             };
             broadcastWatch({
@@ -705,9 +715,9 @@ export default function WatchTogether({
             videoId: cur.videoId,
             title: cur.title,
             baseTime: behindTarget,
-            epochTimestamp: Date.now(),
+            epochTimestamp: serverNow(),
             isPlaying: cur.isPlaying,
-            version: Date.now(),
+            version: serverNow(),
             mediaType: cur.mediaType,
           };
 
