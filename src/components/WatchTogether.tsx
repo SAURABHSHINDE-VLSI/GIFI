@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Room } from "livekit-client";
 import { RoomEvent } from "livekit-client";
 import { VideoTrack } from "@livekit/components-react";
@@ -11,6 +12,8 @@ import { decideSync, projectPosition } from "@/lib/watchSync";
 type PeerWatchState = Parameters<typeof decideSync>[0];
 import { Icon } from "./Icons";
 import WatchControls from "./WatchControls";
+import WatchPillWrapper from "./WatchPillWrapper";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import {
   buildSpotifyEmbedUrl,
   buildYouTubeEmbedUrl,
@@ -53,6 +56,7 @@ type Props = {
   doodleActive?: boolean;
   effectsOpen?: boolean;
   onToggleEffects?: () => void;
+  dockRef?: React.RefObject<HTMLDivElement | null>;
 };
 
 const ROMANTIC_SUGGESTIONS: { title: string; id: string; desc: string; type: MediaType }[] = [
@@ -256,7 +260,12 @@ export default function WatchTogether({
   doodleActive = false,
   effectsOpen = false,
   onToggleEffects,
+  dockRef,
 }: Props) {
+  const isWide = useMediaQuery(
+    "(min-width: 900px) and not ((orientation: landscape) and (max-height: 520px))",
+  );
+
   // Synchronize server time on mount and periodically every 2 minutes
   useEffect(() => {
     resyncServerTime().catch(() => undefined);
@@ -268,6 +277,14 @@ export default function WatchTogether({
 
   const [clock, setClock] = useState<SharedWatchClock | null>(null);
   const clockRef = useRef<SharedWatchClock | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
+  const closingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closingTimerRef.current) clearTimeout(closingTimerRef.current);
+    };
+  }, []);
   useEffect(() => {
     clockRef.current = clock;
     onVideoStateChange?.(Boolean(clock?.videoId));
@@ -321,6 +338,7 @@ export default function WatchTogether({
   const performClose = useCallback(
     (broadcast = true) => {
       lastLocalActionRef.current = Date.now();
+      setIsClosing(false);
       setClock(null);
       clockRef.current = null;
       lastReportedIframeTimeRef.current = 0;
@@ -336,9 +354,22 @@ export default function WatchTogether({
 
   const closePlayer = useCallback(
     (broadcast = true) => {
-      performClose(broadcast);
+      const prefersReduced =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (!isWide || prefersReduced || !clockRef.current) {
+        performClose(broadcast);
+        return;
+      }
+
+      setIsClosing(true);
+      if (closingTimerRef.current) clearTimeout(closingTimerRef.current);
+      closingTimerRef.current = setTimeout(() => {
+        performClose(broadcast);
+      }, 280);
     },
-    [performClose],
+    [isWide, performClose],
   );
 
   const applyClock = useCallback(
@@ -1163,14 +1194,65 @@ export default function WatchTogether({
     </div>
   );
 
+  const renderControls = () => {
+    if (!clock || doodleActive || pickerModalOpen) return null;
+    const isYouTube = clock.mediaType === "youtube";
+
+    const controls = (
+      <WatchControls
+        variant={isWide ? "pill" : "bar"}
+        isYouTube={isYouTube}
+        isPlaying={clock.isPlaying}
+        currentTime={displayTime}
+        syncOn={syncEnabled}
+        onPrev={clock.mediaType === "youtube" ? () => skipAdjacent(-1) : undefined}
+        onNext={clock.mediaType === "youtube" ? () => skipAdjacent(1) : undefined}
+        onRewind10={clock.mediaType === "youtube" ? () => seekBy(-10) : undefined}
+        onForward10={clock.mediaType === "youtube" ? () => seekBy(10) : undefined}
+        onPlayPause={clock.mediaType === "youtube" ? togglePlay : undefined}
+        onSyncToggle={
+          clock.mediaType === "youtube"
+            ? () => {
+                const next = !syncEnabled;
+                onSyncChange?.(next);
+                if (next) {
+                  resyncVideo();
+                }
+              }
+            : undefined
+        }
+        onClose={() => closePlayer(true)}
+      />
+    );
+
+    if (isWide) {
+      const content = (
+        <WatchPillWrapper
+          closing={isClosing}
+          onClosed={() => performClose(true)}
+        >
+          {controls}
+        </WatchPillWrapper>
+      );
+
+      if (dockRef?.current) {
+        return createPortal(content, dockRef.current);
+      }
+      return content;
+    }
+
+    return controls;
+  };
+
   if (!isActive) return null;
 
   // When video/music is loaded: render Full Stage layout
   if (clock?.videoId) {
     return (
-      <div
-        className={`stage-with-faces watch-together-stage ${doodleActive ? "doodle-active" : ""} ${pickerModalOpen ? "browsing" : ""} ${chatVisible ? "chat-open" : ""}`}
-      >
+      <>
+        <div
+          className={`stage-with-faces watch-together-stage ${doodleActive ? "doodle-active" : ""} ${pickerModalOpen ? "browsing" : ""} ${chatVisible ? "chat-open" : ""}`}
+        >
         <div className="stage-with-faces-inner">
           <div className="watch-card-container">
             <div className="watch-card">
@@ -1207,31 +1289,7 @@ export default function WatchTogether({
                 </div>
               </div>
 
-              {!doodleActive && !pickerModalOpen && (
-                <WatchControls
-                  isYouTube={clock.mediaType === "youtube"}
-                  isPlaying={clock.isPlaying}
-                  currentTime={displayTime}
-                  syncOn={syncEnabled}
-                  onPrev={clock.mediaType === "youtube" ? () => skipAdjacent(-1) : undefined}
-                  onNext={clock.mediaType === "youtube" ? () => skipAdjacent(1) : undefined}
-                  onRewind10={clock.mediaType === "youtube" ? () => seekBy(-10) : undefined}
-                  onForward10={clock.mediaType === "youtube" ? () => seekBy(10) : undefined}
-                  onPlayPause={clock.mediaType === "youtube" ? togglePlay : undefined}
-                  onSyncToggle={
-                    clock.mediaType === "youtube"
-                      ? () => {
-                          const next = !syncEnabled;
-                          onSyncChange?.(next);
-                          if (next) {
-                            resyncVideo();
-                          }
-                        }
-                      : undefined
-                  }
-                  onClose={() => closePlayer(true)}
-                />
-              )}
+              {!isWide && renderControls()}
             </div>
           </div>
 
@@ -1285,6 +1343,8 @@ export default function WatchTogether({
         {/* In-stage browser for switching video while watching */}
         {pickerModalOpen && renderBrowser()}
       </div>
+      {isWide && renderControls()}
+    </>
     );
   }
 
