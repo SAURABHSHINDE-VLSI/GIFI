@@ -126,6 +126,26 @@ export default function CallChat({
     if (element) element.scrollTop = element.scrollHeight;
   }, [items, visible]);
 
+  const closeChat = useCallback(() => {
+    onClose?.();
+    requestAnimationFrame(() => {
+      const toggleBtn = document.querySelector<HTMLButtonElement>("[data-chat-toggle]");
+      toggleBtn?.focus();
+    });
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeChat();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [visible, closeChat]);
+
   if (typeof window === "undefined") return null;
 
   function submit(event: React.FormEvent) {
@@ -170,32 +190,49 @@ export default function CallChat({
       )}
 
       {visible && (
-        <div
-          className="call-chat-box"
-          style={keyboardOffset > 0 ? { bottom: `${keyboardOffset}px` } : undefined}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="call-chat-head">
-            <div className="call-chat-head-left">
-              <span className="call-chat-heart-icon">♥</span>
-              <div className="call-chat-head-meta">
-                <span className="call-chat-partner">{partnerName || "my love"}</span>
-                <span className="call-chat-status">
-                  <span className="call-chat-status-dot" />
-                  online
-                </span>
+        <>
+          <div
+            className="call-chat-backdrop"
+            onPointerDown={(e) => {
+              const target = e.target as HTMLElement;
+              if (target.closest("[data-chat-toggle]")) {
+                return;
+              }
+              const under = document.elementFromPoint(e.clientX, e.clientY);
+              if (under?.closest("[data-chat-toggle]")) {
+                return;
+              }
+              closeChat();
+            }}
+            aria-hidden="true"
+          />
+          <div
+            className="call-chat-box"
+            style={keyboardOffset > 0 ? { bottom: `${keyboardOffset}px` } : undefined}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div className="call-chat-head">
+              <div className="call-chat-head-left">
+                <span className="call-chat-heart-icon">♥</span>
+                <div className="call-chat-head-meta">
+                  <span className="call-chat-partner">{partnerName || "my love"}</span>
+                  <span className="call-chat-status">
+                    <span className="call-chat-status-dot" />
+                    online
+                  </span>
+                </div>
               </div>
+              <button
+                type="button"
+                className="call-chat-close-btn"
+                onClick={closeChat}
+                aria-label="Close chat"
+                title="Close chat"
+              >
+                ×
+              </button>
             </div>
-            <button
-              type="button"
-              className="call-chat-close-btn"
-              onClick={onClose}
-              aria-label="Close chat"
-              title="Close chat"
-            >
-              ×
-            </button>
-          </div>
 
           <div className="call-chat-list" ref={list}>
             {items.length === 0 && (
@@ -257,7 +294,8 @@ export default function CallChat({
             </button>
           </form>
         </div>
-      )}
-    </>
-  );
+      </>
+    )}
+  </>
+);
 }

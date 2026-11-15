@@ -241,6 +241,7 @@ export default function CallControls({
             className={`ctrl chat-ctrl ${chatVisible ? "active" : ""}`}
             type="button"
             onClick={onToggleChat}
+            data-chat-toggle="true"
             aria-label={chatVisible ? "Close chat" : "Open chat"}
             title={chatVisible ? "Close chat" : "Open chat"}
           >
