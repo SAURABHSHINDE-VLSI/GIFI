@@ -3431,45 +3431,102 @@ button {
   }
 }
 
-/* Phone Portrait (< 700px) */
-@media (max-width: 699px) {
-  .stage-with-faces.watch-together-stage {
-    padding: calc(52px + env(safe-area-inset-top)) 12px calc(80px + env(safe-area-inset-bottom)) 12px;
+/* Phone Portrait (< 700px, portrait) */
+@media (max-width: 699px) and (orientation: portrait) {
+  .call-wrap {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
   }
 
-  .stage-with-faces.watch-together-stage .stage-with-faces-inner {
+  .call-main-stage {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
   }
 
+  .stage-with-faces,
+  .stage-with-faces.watch-together-stage {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: calc(48px + env(safe-area-inset-top, 0px)) 12px 6px 12px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .stage-with-faces-inner,
+  .stage-with-faces.watch-together-stage .stage-with-faces-inner {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    width: 100% !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+  }
+
+  .watch-card-container,
   .stage-with-faces.watch-together-stage .watch-card-container {
-    flex: 0 0 auto;
-    width: 100%;
-    height: auto;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    height: auto !important;
+    container-type: normal !important;
+    display: block !important;
   }
 
+  .watch-card,
   .stage-with-faces.watch-together-stage .watch-card {
-    width: 100%;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
   }
 
+  .watch-video-frame,
+  .stage-with-faces.watch-together-stage .watch-video-frame {
+    position: relative !important;
+    width: 100% !important;
+    aspect-ratio: 16 / 9 !important;
+    height: auto !important;
+    border-top-left-radius: 16px !important;
+    border-top-right-radius: 16px !important;
+    overflow: hidden !important;
+  }
+
+  .face-tiles,
   .stage-with-faces.watch-together-stage .face-tiles {
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    flex: 1 1 auto;
-    min-height: 112px;
-    max-height: 220px;
-    width: 100%;
-    height: auto;
+    position: relative !important;
+    inset: auto !important;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    width: 100% !important;
+    flex: 1 1 auto !important;
+    min-height: 96px !important;
+    max-height: 240px !important;
+    height: auto !important;
+    z-index: 1 !important;
   }
 
+  .face-tile,
   .stage-with-faces.watch-together-stage .face-tile {
-    flex: 1 1 0;
-    min-width: 0;
-    height: 100%;
-    border-radius: 12px;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    border-radius: 12px !important;
   }
 }
 

@@ -101,12 +101,33 @@
 }
 
 @media (max-width: 699px) {
+  .watchBar {
+    padding: 4px 8px;
+    min-height: 48px;
+    gap: 4px;
+  }
+  .playbackGroup {
+    gap: 4px;
+  }
+  .metaGroup {
+    gap: 4px;
+  }
+  .iconBtn {
+    width: 34px;
+    height: 34px;
+  }
+  .syncPill {
+    height: 30px;
+    padding: 0 8px;
+    font-size: 11px;
+    gap: 4px;
+  }
   .timeDisplay {
     display: none;
   }
 }
 
-@media (max-width: 350px) {
+@media (max-width: 360px) {
   .navBtn {
     display: none;
   }
