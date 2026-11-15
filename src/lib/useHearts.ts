@@ -48,8 +48,10 @@ function shouldSkipAnimation() {
 
 export function useHearts(room: Room, onKissReceived?: () => void) {
   const [bursts, setBursts] = useState<Burst[]>([]);
+  const [heartShowerTrigger, setHeartShowerTrigger] = useState<number>(0);
   const [emojiBursts, setEmojiBursts] = useState<KissBurst[]>([]);
   const burstTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const lastHeartReceivedRef = useRef<number>(0);
 
   useEffect(() => {
     const timers = burstTimers.current;
@@ -70,19 +72,7 @@ export function useHearts(room: Room, onKissReceived?: () => void) {
 
   const burst = useCallback(() => {
     if (shouldSkipAnimation()) return;
-    const batch: Burst[] = Array.from({ length: 7 }, (_, index) => ({
-      id: Date.now() + index,
-      left: 12 + Math.random() * 72,
-      size: 18 + Math.random() * 20,
-      drift: Math.random() * 60 - 30,
-    }));
-    setBursts((current) => [...current, ...batch]);
-    const timer = setTimeout(() => {
-      setBursts((current) =>
-        current.filter((heart) => !batch.some((item) => item.id === heart.id)),
-      );
-    }, 2800);
-    burstTimers.current.push(timer);
+    setHeartShowerTrigger((prev) => prev + 1);
   }, []);
 
   const burstEmoji = useCallback((emoji: string) => {
@@ -118,7 +108,14 @@ export function useHearts(room: Room, onKissReceived?: () => void) {
     const onData = (payload: Uint8Array) => {
       try {
         const message = JSON.parse(new TextDecoder().decode(payload));
-        if (message?.t === "hearts") burst();
+        if (message?.t === "hearts") {
+          const now = Date.now();
+          if (now - lastHeartReceivedRef.current < 1500) {
+            return;
+          }
+          lastHeartReceivedRef.current = now;
+          burst();
+        }
         if (message?.t === "kiss") {
           burstEmoji("💋");
           onKissReceived?.();
@@ -167,6 +164,7 @@ export function useHearts(room: Room, onKissReceived?: () => void) {
 
   return {
     bursts,
+    heartShowerTrigger,
     emojiBursts,
     burst,
     burstEmoji,

@@ -17,6 +17,7 @@ import CallChat from "./CallChat";
 import CallDock from "./CallDock";
 import CallControls from "./CallControls";
 import VideoStage from "./VideoStage";
+import HeartShower from "./HeartShower";
 import { useCallPip } from "@/lib/useCallPip";
 import {
   loadAutoPipPref,
@@ -241,7 +242,7 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
     setTimeout(() => setGestureFlash(null), 2000);
   }, []);
 
-  const { bursts, emojiBursts, sendHearts, sendEmojiBurst, sendKiss } = useHearts(
+  const { heartShowerTrigger, emojiBursts, sendHearts, sendEmojiBurst, sendKiss } = useHearts(
     room,
     onKissReceived,
   );
@@ -743,7 +744,6 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
             onFlipCamera={flipCamera}
             effectsOpen={effectsOpen}
             onToggleEffects={() => setEffectsOpen((prev) => !prev)}
-            bursts={bursts}
             focusMode={focusMode}
           />
         )}
@@ -819,21 +819,11 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
           saveAutoPipPref(enabled);
         }}
       />
-      {/* Floating burst layer for hearts & emoji bursts */}
+      {/* 3D Glossy Heart Shower */}
+      <HeartShower trigger={heartShowerTrigger} />
+
+      {/* Floating burst layer for emoji & kiss bursts */}
       <div className="burst-layer" aria-hidden="true">
-        {bursts.map((heart) => (
-          <span
-            key={heart.id}
-            className="burst-heart"
-            style={{
-              left: `${heart.left}%`,
-              fontSize: heart.size,
-              ["--drift" as string]: `${heart.drift}px`,
-            }}
-          >
-            ♥
-          </span>
-        ))}
         {emojiBursts.map((item) => (
           <span
             key={item.id}

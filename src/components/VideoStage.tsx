@@ -6,7 +6,6 @@ import { ConnectionState } from "livekit-client";
 import type { RemoteParticipant } from "livekit-client";
 import { Icon } from "./Icons";
 import { initialOf } from "@/lib/ui";
-import type { Burst } from "@/lib/useHearts";
 
 type Props = {
   stageRef: React.RefObject<HTMLDivElement | null>;
@@ -30,7 +29,6 @@ type Props = {
   onFlipCamera: () => void;
   effectsOpen?: boolean;
   onToggleEffects?: () => void;
-  bursts: Burst[];
   focusMode: "partner" | "self";
 };
 
@@ -56,7 +54,6 @@ export default function VideoStage({
   onFlipCamera,
   effectsOpen = false,
   onToggleEffects,
-  bursts,
   focusMode,
 }: Props) {
   return (
@@ -219,22 +216,6 @@ export default function VideoStage({
           </span>
         </div>
       )}
-
-      <div className="burst-layer" aria-hidden="true">
-        {bursts.map((heart) => (
-          <span
-            key={heart.id}
-            className="burst-heart"
-            style={{
-              left: `${heart.left}%`,
-              fontSize: heart.size,
-              ["--drift" as string]: `${heart.drift}px`,
-            }}
-          >
-            ♥
-          </span>
-        ))}
-      </div>
     </div>
   );
 }
