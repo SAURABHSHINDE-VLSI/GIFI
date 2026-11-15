@@ -126,6 +126,22 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
     }
   }, [isSomeoneSpeaking]);
 
+  useEffect(() => {
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      if (
+        reason?.name === "AbortError" ||
+        (typeof reason?.message === "string" &&
+          (reason.message.includes("play() request was interrupted") ||
+            reason.message.includes("could not playback audio")))
+      ) {
+        event.preventDefault();
+      }
+    };
+    window.addEventListener("unhandledrejection", handleRejection);
+    return () => window.removeEventListener("unhandledrejection", handleRejection);
+  }, []);
+
   const [doodleActive, setDoodleActive] = useState(false);
   const [scrapbookOpen, setScrapbookOpen] = useState(false);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
