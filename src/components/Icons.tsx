@@ -34,6 +34,7 @@ export type IconName =
   | "close"
   | "chevron-up"
   | "chevron-down"
+  | "more"
   | "sliders";
 
 
@@ -245,6 +246,13 @@ const shapes: Record<IconName, React.ReactNode> = {
   ),
   "chevron-down": (
     <polyline points="6 9 12 15 18 9" />
+  ),
+  more: (
+    <>
+      <circle cx="12" cy="12" r="1.5" />
+      <circle cx="19" cy="12" r="1.5" />
+      <circle cx="5" cy="12" r="1.5" />
+    </>
   ),
   sliders: (
     <>

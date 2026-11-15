@@ -77,7 +77,31 @@ export default function CallChat({
   onReact,
 }: Props) {
   const [draft, setDraft] = useState("");
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const list = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!visible || typeof window === "undefined" || !window.visualViewport) return;
+
+    const vv = window.visualViewport;
+    const handleViewportChange = () => {
+      const offset = Math.max(0, window.innerHeight - vv.height - (vv.offsetTop || 0));
+      setKeyboardOffset(offset);
+      if (list.current) {
+        list.current.scrollTop = list.current.scrollHeight;
+      }
+    };
+
+    vv.addEventListener("resize", handleViewportChange);
+    vv.addEventListener("scroll", handleViewportChange);
+    handleViewportChange();
+
+    return () => {
+      vv.removeEventListener("resize", handleViewportChange);
+      vv.removeEventListener("scroll", handleViewportChange);
+      setKeyboardOffset(0);
+    };
+  }, [visible]);
 
   const markSeen = useCallback(
     (item: ChatItem) => {
@@ -146,7 +170,11 @@ export default function CallChat({
       )}
 
       {visible && (
-        <div className="call-chat-box" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="call-chat-box"
+          style={keyboardOffset > 0 ? { bottom: `${keyboardOffset}px` } : undefined}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="call-chat-head">
             <div className="call-chat-head-left">
               <span className="call-chat-heart-icon">♥</span>

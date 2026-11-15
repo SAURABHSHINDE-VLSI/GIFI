@@ -21,8 +21,10 @@ export default function EffectsControls({
   const [isLowConcurrency, setIsLowConcurrency] = useState(false);
 
   useEffect(() => {
-    if (typeof navigator !== "undefined" && navigator.hardwareConcurrency) {
-      setIsLowConcurrency(navigator.hardwareConcurrency <= 4);
+    if (typeof window !== "undefined") {
+      const isTouch = window.matchMedia("(hover: none)").matches;
+      const isLowCore = typeof navigator !== "undefined" && Boolean(navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
+      setIsLowConcurrency(isTouch || isLowCore);
     }
   }, []);
 
@@ -41,7 +43,7 @@ export default function EffectsControls({
           <div className="effects-group-header">
             <span className="effects-group-title">Background Blur</span>
             {isLowConcurrency && (
-              <span className="effects-group-hint">May slow older devices.</span>
+              <span className="effects-group-hint">May drain battery.</span>
             )}
           </div>
           <div

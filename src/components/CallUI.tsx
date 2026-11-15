@@ -168,6 +168,45 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
     };
   }, [emojiPickerOpen]);
 
+  // Keep the screen awake during a call with the Screen Wake Lock API
+  useEffect(() => {
+    let lock: WakeLockSentinel | null = null;
+    let cancelled = false;
+
+    async function requestWakeLock() {
+      if (cancelled) return;
+      if (typeof navigator !== "undefined" && "wakeLock" in navigator && navigator.wakeLock) {
+        try {
+          lock = await navigator.wakeLock.request("screen");
+          lock.addEventListener("release", () => {
+            lock = null;
+          });
+        } catch {
+          // Gracefully ignore wake lock failures (e.g. low power, permission)
+        }
+      }
+    }
+
+    requestWakeLock();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (lock) {
+        lock.release().catch(() => undefined);
+        lock = null;
+      }
+    };
+  }, []);
+
   // Hearts & Reactions
   const onKissReceived = useCallback(() => {
     setGestureFlash("💋 Kiss received");

@@ -3798,6 +3798,7 @@ button {
 }
 
 .dock-emoji-item {
+  position: relative;
   width: 32px;
   height: 32px;
   display: inline-flex;
@@ -3810,6 +3811,12 @@ button {
   border-radius: 50%;
   transition: transform 0.15s ease, background 0.15s ease;
   user-select: none;
+}
+
+.dock-emoji-item::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
 }
 
 .dock-emoji-item:hover {
@@ -7400,5 +7407,178 @@ button {
   .origami-composer-modal,
   .origami-unfold-modal {
     max-height: 92dvh !important;
+  }
+}
+
+/* ------------------ MOBILE CALL CONTROLS & MORE POPOVER ------------------ */
+.dock-more-wrap {
+  position: relative;
+  display: flex;
+}
+
+.dock-more-popover {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  right: 0;
+  min-width: 250px;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(28, 10, 22, 0.98), rgba(16, 5, 13, 0.98));
+  border: 1px solid rgba(246, 169, 189, 0.28);
+  border-radius: 18px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(239, 95, 134, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 30;
+  animation: dock-popover-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes dock-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dock-more-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 44px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.dock-more-action-btn:active,
+.dock-more-action-btn.active {
+  background: rgba(239, 95, 134, 0.25);
+  border-color: rgba(239, 95, 134, 0.5);
+  color: #ffd0dd;
+}
+
+.dock-more-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.dock-more-emojis {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dock-more-emojis-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+@media (min-width: 421px) {
+  .ctrl-mobile-more {
+    display: none !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .ctrl-desktop-secondary {
+    display: none !important;
+  }
+  .ctrl-mobile-more {
+    display: flex !important;
+  }
+}
+
+/* Call screen phone responsiveness */
+@media (max-width: 640px) {
+  .ctrl-label {
+    display: none !important;
+  }
+  .ctrl {
+    width: auto !important;
+    gap: 0 !important;
+  }
+  .dock {
+    padding: 6px 10px 6px !important;
+    gap: 4px !important;
+  }
+  .call-chat-box {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 70dvh !important;
+    max-height: 70dvh !important;
+    border-radius: 20px 20px 0 0 !important;
+    border-bottom: none !important;
+    z-index: 50 !important;
+  }
+}
+
+@media (max-width: 480px) and (orientation: portrait) {
+  .local-tile {
+    width: 96px !important;
+    height: 128px !important;
+    aspect-ratio: 3 / 4 !important;
+    left: auto !important;
+    right: max(12px, env(safe-area-inset-right, 12px)) !important;
+    bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
+    border-radius: 14px !important;
+  }
+  .local-tile.chat-open {
+    left: max(12px, env(safe-area-inset-left, 12px)) !important;
+    right: auto !important;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .call-top {
+    padding-top: max(4px, env(safe-area-inset-top, 4px)) !important;
+    padding-bottom: 4px !important;
+  }
+  .call-brand {
+    font-size: 16px !important;
+  }
+  .call-meta {
+    display: none !important;
+  }
+  .local-tile {
+    width: 88px !important;
+    height: 66px !important;
+    aspect-ratio: 4 / 3 !important;
+    bottom: 8px !important;
+    right: max(8px, env(safe-area-inset-right, 8px)) !important;
+  }
+  .dock {
+    padding: 4px 8px !important;
+    gap: 4px !important;
+  }
+  .ctrl-slot {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  .ctrl-orb {
+    width: 36px !important;
+    height: 36px !important;
+  }
+  .ctrl-label {
+    display: none !important;
   }
 }
