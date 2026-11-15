@@ -15,7 +15,6 @@ export type WatchControlsProps = {
   onForward10?: () => void;
   onPlayPause?: () => void;
   onSyncToggle?: () => void;
-  onBrowse?: () => void;
   onClose: () => void;
 };
 
@@ -41,23 +40,22 @@ export default function WatchControls({
   onForward10,
   onPlayPause,
   onSyncToggle,
-  onBrowse,
   onClose,
 }: WatchControlsProps) {
   return (
-    <div className={styles.watchPill} role="group" aria-label="Playback controls">
+    <div className={styles.watchBar} role="group" aria-label="Playback controls">
       {isYouTube ? (
         <>
           <div className={styles.playbackGroup}>
             {onPrev && (
               <button
                 type="button"
-                className={styles.iconBtn}
+                className={`${styles.iconBtn} ${styles.navBtn}`}
                 onClick={onPrev}
                 aria-label="Previous video"
                 title="Previous video"
               >
-                <Icon name="skip-back" size={20} />
+                <Icon name="skip-back" size={18} />
               </button>
             )}
 
@@ -69,7 +67,7 @@ export default function WatchControls({
                 aria-label="Back 10 seconds"
                 title="Back 10 seconds"
               >
-                <Icon name="replay-10" size={20} />
+                <Icon name="replay-10" size={18} />
               </button>
             )}
 
@@ -81,7 +79,7 @@ export default function WatchControls({
                 aria-label={isPlaying ? "Pause" : "Play"}
                 title={isPlaying ? "Pause" : "Play"}
               >
-                <Icon name={isPlaying ? "pause" : "play"} size={22} />
+                <Icon name={isPlaying ? "pause" : "play"} size={20} />
               </button>
             )}
 
@@ -93,29 +91,25 @@ export default function WatchControls({
                 aria-label="Forward 10 seconds"
                 title="Forward 10 seconds"
               >
-                <Icon name="forward-10" size={20} />
+                <Icon name="forward-10" size={18} />
               </button>
             )}
 
             {onNext && (
               <button
                 type="button"
-                className={styles.iconBtn}
+                className={`${styles.iconBtn} ${styles.navBtn}`}
                 onClick={onNext}
                 aria-label="Next video"
                 title="Next video"
               >
-                <Icon name="skip-forward" size={20} />
+                <Icon name="skip-forward" size={18} />
               </button>
             )}
           </div>
 
-          <div className={styles.divider} role="separator" aria-orientation="vertical" />
-
           <div className={styles.metaGroup}>
             <span className={styles.timeDisplay}>{formatWatchTime(currentTime)}</span>
-
-            <div className={styles.divider} role="separator" aria-orientation="vertical" />
 
             <button
               type="button"
@@ -133,18 +127,6 @@ export default function WatchControls({
               <span className={styles.syncLabel}>{syncOn ? "Synced" : "Sync off"}</span>
             </button>
 
-            {onBrowse && (
-              <button
-                type="button"
-                className={styles.iconBtn}
-                onClick={onBrowse}
-                aria-label="Minimise and browse"
-                title="Minimise & browse"
-              >
-                <Icon name="pip" size={20} />
-              </button>
-            )}
-
             <button
               type="button"
               className={`${styles.iconBtn} ${styles.closeBtn}`}
@@ -152,39 +134,23 @@ export default function WatchControls({
               aria-label="Stop watching"
               title="Stop watching"
             >
-              <Icon name="close" size={20} />
+              <Icon name="close" size={18} />
             </button>
           </div>
         </>
       ) : (
-        <>
-          <span className={styles.spotifyNote}>
-            Same track on both screens · use Spotify&apos;s own controls
-          </span>
-
-          <div className={styles.divider} role="separator" aria-orientation="vertical" />
-
-          <button
-            type="button"
-            className={`${styles.syncPill} ${styles.syncDisabled}`}
-            disabled
-            aria-label="Spotify can't be synced"
-            title="Spotify can't be synced"
-          >
-            <span className={`${styles.syncDot} ${styles.syncDotDisabled}`} aria-hidden="true" />
-            <span className={styles.syncLabel}>Spotify can&apos;t be synced</span>
-          </button>
-
+        <div className={styles.metaGroup}>
+          <span className={styles.spotifyNote}>Playing via Spotify</span>
           <button
             type="button"
             className={`${styles.iconBtn} ${styles.closeBtn}`}
             onClick={onClose}
-            aria-label="Stop watching"
-            title="Stop watching"
+            aria-label="Stop playback"
+            title="Stop playback"
           >
-            <Icon name="close" size={20} />
+            <Icon name="close" size={18} />
           </button>
-        </>
+        </div>
       )}
     </div>
   );

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import type { Room } from "livekit-client";
 import { RoomEvent } from "livekit-client";
 import { VideoTrack } from "@livekit/components-react";
@@ -12,7 +11,6 @@ import { decideSync, projectPosition } from "@/lib/watchSync";
 type PeerWatchState = Parameters<typeof decideSync>[0];
 import { Icon } from "./Icons";
 import WatchControls from "./WatchControls";
-import WatchPillWrapper from "./WatchPillWrapper";
 import {
   buildSpotifyEmbedUrl,
   buildYouTubeEmbedUrl,
@@ -55,7 +53,6 @@ type Props = {
   doodleActive?: boolean;
   effectsOpen?: boolean;
   onToggleEffects?: () => void;
-  dockRef?: React.RefObject<HTMLDivElement | null>;
 };
 
 const ROMANTIC_SUGGESTIONS: { title: string; id: string; desc: string; type: MediaType }[] = [
@@ -259,7 +256,6 @@ export default function WatchTogether({
   doodleActive = false,
   effectsOpen = false,
   onToggleEffects,
-  dockRef,
 }: Props) {
   // Synchronize server time on mount and periodically every 2 minutes
   useEffect(() => {
@@ -322,13 +318,9 @@ export default function WatchTogether({
     );
   }, []);
 
-  const [isClosing, setIsClosing] = useState(false);
-  const closingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const performClose = useCallback(
     (broadcast = true) => {
       lastLocalActionRef.current = Date.now();
-      setIsClosing(false);
       setClock(null);
       clockRef.current = null;
       lastReportedIframeTimeRef.current = 0;
@@ -344,20 +336,7 @@ export default function WatchTogether({
 
   const closePlayer = useCallback(
     (broadcast = true) => {
-      const prefersReduced =
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-      if (prefersReduced || !clockRef.current) {
-        performClose(broadcast);
-        return;
-      }
-
-      setIsClosing(true);
-      if (closingTimerRef.current) clearTimeout(closingTimerRef.current);
-      closingTimerRef.current = setTimeout(() => {
-        performClose(broadcast);
-      }, 280);
+      performClose(broadcast);
     },
     [performClose],
   );
@@ -1167,89 +1146,32 @@ export default function WatchTogether({
     </div>
   );
 
-  const renderControls = () => {
-    if (!clock || doodleActive || pickerModalOpen) return null;
-    const isYouTube = clock.mediaType === "youtube";
-
-    const content = (
-      <WatchPillWrapper
-        closing={isClosing}
-        onClosed={() => performClose(true)}
-      >
-        <WatchControls
-          isYouTube={isYouTube}
-          isPlaying={clock.isPlaying}
-          currentTime={displayTime}
-          syncOn={syncEnabled}
-          onPrev={isYouTube ? () => skipAdjacent(-1) : undefined}
-          onNext={isYouTube ? () => skipAdjacent(1) : undefined}
-          onRewind10={isYouTube ? () => seekBy(-10) : undefined}
-          onForward10={isYouTube ? () => seekBy(10) : undefined}
-          onPlayPause={isYouTube ? togglePlay : undefined}
-          onSyncToggle={
-            isYouTube
-              ? () => {
-                  const next = !syncEnabled;
-                  onSyncChange?.(next);
-                  if (next) {
-                    resyncVideo();
-                  }
-                }
-              : undefined
-          }
-          onBrowse={isYouTube ? () => setPickerModalOpen(true) : undefined}
-          onClose={() => closePlayer(true)}
-        />
-      </WatchPillWrapper>
-    );
-
-    if (dockRef?.current) {
-      return createPortal(content, dockRef.current);
-    }
-    return content;
-  };
-
   if (!isActive) return null;
 
   // When video/music is loaded: render Full Stage layout
   if (clock?.videoId) {
     return (
-      <div className={`stage-with-faces watch-together-stage ${doodleActive ? "doodle-active" : ""} ${pickerModalOpen ? "browsing" : ""} ${chatVisible ? "chat-open" : ""}`}>
+      <div
+        className={`stage-with-faces watch-together-stage ${doodleActive ? "doodle-active" : ""} ${pickerModalOpen ? "browsing" : ""} ${chatVisible ? "chat-open" : ""}`}
+      >
         <div className="stage-with-faces-inner">
-          <div className={`stage-video-wrap watch-video-wrap${pickerModalOpen ? " mini" : ""}`}>
-            {isDucked && (
-              <div className="watch-ducked-badge" aria-live="polite">
-                <span>🎧 Voice Priority (Media ducked to 20%)</span>
-              </div>
-            )}
-            {clock.mediaType === "spotify" ? (
-              <>
-                <div className="stage-banner watch-stage-banner">
-                  <Icon name="music" size={14} />
-                  <span className="watch-banner-title">{clock.title}</span>
+          <div className="watch-card-container">
+            <div className="watch-card">
+              {isDucked && (
+                <div className="watch-ducked-badge" aria-live="polite">
+                  <span>🎧 Voice Priority (Media ducked to 20%)</span>
                 </div>
-
-                <div className="watch-iframe-slot">
+              )}
+              <div className="watch-video-frame">
+                {clock.mediaType === "spotify" ? (
                   <iframe
                     key={clock.videoId}
                     className="watch-stage-iframe spotify-player"
                     src={buildSpotifyEmbedUrl(clock.videoId)}
-                    width="100%"
-                    height="100%"
-                    frameBorder="0"
                     allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                     title={clock.title}
                   />
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="stage-banner watch-stage-banner">
-                  <Icon name="tv" size={14} />
-                  <span className="watch-banner-title">{clock.title}</span>
-                </div>
-
-                <div className="watch-iframe-slot">
+                ) : (
                   <iframe
                     key={clock.videoId}
                     ref={iframeRef}
@@ -1261,32 +1183,37 @@ export default function WatchTogether({
                     )}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
+                    title={clock.title}
                   />
-                </div>
-              </>
-            )}
-
-            {pickerModalOpen && (
-              <div className="watch-mini-bar">
-                <button
-                  type="button"
-                  onClick={() => setPickerModalOpen(false)}
-                  title="Expand player"
-                  aria-label="Expand player"
-                >
-                  <Icon name="chevron-up" size={16} />
-                </button>
-                <span className="watch-mini-title">{clock.title}</span>
-                <button
-                  type="button"
-                  onClick={() => closePlayer(true)}
-                  title="Stop watching"
-                  aria-label="Stop watching"
-                >
-                  <Icon name="close" size={16} />
-                </button>
+                )}
               </div>
-            )}
+
+              {!doodleActive && !pickerModalOpen && (
+                <WatchControls
+                  isYouTube={clock.mediaType === "youtube"}
+                  isPlaying={clock.isPlaying}
+                  currentTime={displayTime}
+                  syncOn={syncEnabled}
+                  onPrev={clock.mediaType === "youtube" ? () => skipAdjacent(-1) : undefined}
+                  onNext={clock.mediaType === "youtube" ? () => skipAdjacent(1) : undefined}
+                  onRewind10={clock.mediaType === "youtube" ? () => seekBy(-10) : undefined}
+                  onForward10={clock.mediaType === "youtube" ? () => seekBy(10) : undefined}
+                  onPlayPause={clock.mediaType === "youtube" ? togglePlay : undefined}
+                  onSyncToggle={
+                    clock.mediaType === "youtube"
+                      ? () => {
+                          const next = !syncEnabled;
+                          onSyncChange?.(next);
+                          if (next) {
+                            resyncVideo();
+                          }
+                        }
+                      : undefined
+                  }
+                  onClose={() => closePlayer(true)}
+                />
+              )}
+            </div>
           </div>
 
           {/* Couple Camera Column */}
@@ -1335,9 +1262,6 @@ export default function WatchTogether({
             {syncNotice}
           </div>
         )}
-
-        {/* YouTube / Media Playback Controls docked at bottom right */}
-        {renderControls()}
 
         {/* In-stage browser for switching video while watching */}
         {pickerModalOpen && renderBrowser()}

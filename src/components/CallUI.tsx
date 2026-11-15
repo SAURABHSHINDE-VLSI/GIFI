@@ -718,7 +718,6 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
           micOn={micOn}
           chatVisible={chatVisible}
           doodleActive={doodleActive}
-          dockRef={dockRef}
         />
 
         {!watchActive && (

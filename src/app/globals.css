@@ -1474,9 +1474,6 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  column-gap: 16px;
-  row-gap: 12px;
-  flex-wrap: wrap-reverse;
   padding-left: max(16px, env(safe-area-inset-left));
   padding-right: max(16px, env(safe-area-inset-right));
   padding-bottom: var(--dock-bottom);
@@ -1499,75 +1496,6 @@ button {
   padding: 0;
   z-index: 40;
   pointer-events: auto;
-}
-
-.watch-controls-wrap,
-.watch-pill-wrapper {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  z-index: 40;
-  pointer-events: auto;
-  overflow: clip;
-  padding: 6px 4px;
-  margin: -6px -4px;
-  box-sizing: border-box;
-}
-
-.watch-pill-wrapper.pill-enter {
-  animation: pillSlideIn 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.watch-pill-wrapper.pill-idle {
-  width: auto;
-  max-width: 100%;
-  opacity: 1;
-  transform: none;
-}
-
-.watch-pill-wrapper.pill-exit {
-  animation: pillSlideOut 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes pillSlideIn {
-  0% {
-    opacity: 0;
-    transform: translateX(24px);
-    width: 0;
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-    width: var(--pill-width, 516px);
-  }
-}
-
-@keyframes pillSlideOut {
-  0% {
-    opacity: 1;
-    transform: translateX(0);
-    width: var(--pill-width, 516px);
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(24px);
-    width: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .watch-pill-wrapper,
-  .watch-pill-wrapper.pill-enter,
-  .watch-pill-wrapper.pill-idle,
-  .watch-pill-wrapper.pill-exit {
-    animation: none !important;
-    transition: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-    width: auto !important;
-  }
 }
 
 .dock {
@@ -3423,54 +3351,157 @@ button {
   background: #0d040a;
 }
 
-.watch-video-wrap {
-  position: relative;
+/* Unified 16:9 Watch Card container and frame */
+.watch-card-container {
+  container-type: size;
   flex: 1;
   min-width: 0;
   height: 100%;
-  border-radius: 20px;
-  overflow: hidden;
-  background: #000;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.75);
 }
 
-/* ---- Watch player: layout + custom playback controls ---- */
-.watch-together-stage .watch-video-wrap:not(.watch-browse-wrap) {
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-}
-
-.watch-iframe-slot {
+.watch-card {
   position: relative;
-  flex: 1;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
+  width: min(100%, calc((100cqh - 52px) * 16 / 9));
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75);
 }
 
-.watch-iframe-slot .watch-stage-iframe {
+.watch-video-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  overflow: hidden;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+.watch-video-frame .watch-stage-iframe {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.watch-spotify-host {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.watch-spotify-host iframe {
   width: 100%;
   height: 100%;
   border: none;
   display: block;
+}
+
+/* Desktop layout (>= 900px) */
+@media (min-width: 900px) {
+  .stage-with-faces.watch-together-stage .stage-with-faces-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(220px, 24vw, 320px);
+    align-items: center;
+    gap: 16px;
+    height: 100%;
+  }
+
+  .stage-with-faces.watch-together-stage .face-tiles {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    width: 100%;
+    align-self: stretch;
+  }
+
+  .stage-with-faces.watch-together-stage .face-tile {
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+    border-radius: 16px;
+  }
+}
+
+/* Phone Portrait (< 700px) */
+@media (max-width: 699px) {
+  .stage-with-faces.watch-together-stage {
+    padding: calc(52px + env(safe-area-inset-top)) 12px calc(80px + env(safe-area-inset-bottom)) 12px;
+  }
+
+  .stage-with-faces.watch-together-stage .stage-with-faces-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
+  }
+
+  .stage-with-faces.watch-together-stage .watch-card-container {
+    flex: 0 0 auto;
+    width: 100%;
+    height: auto;
+  }
+
+  .stage-with-faces.watch-together-stage .watch-card {
+    width: 100%;
+  }
+
+  .stage-with-faces.watch-together-stage .face-tiles {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-height: 112px;
+    max-height: 220px;
+    width: 100%;
+    height: auto;
+  }
+
+  .stage-with-faces.watch-together-stage .face-tile {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    border-radius: 12px;
+  }
+}
+
+/* Landscape Phone (height < 500px and landscape) */
+@media (max-height: 499px) and (orientation: landscape) {
+  .stage-with-faces.watch-together-stage {
+    padding: 6px 12px calc(48px + env(safe-area-inset-bottom)) 12px;
+  }
+
+  .stage-with-faces.watch-together-stage .stage-with-faces-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(130px, 22vw, 170px);
+    gap: 8px;
+    height: 100%;
+    align-items: center;
+  }
+
+  .stage-with-faces.watch-together-stage .watch-card-container {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .stage-with-faces.watch-together-stage .watch-card {
+    width: min(100%, calc((100cqh - 48px) * 16 / 9));
+    max-height: 100%;
+  }
+
+  .stage-with-faces.watch-together-stage .face-tiles {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    height: 100%;
+    width: 100%;
+  }
+
+  .stage-with-faces.watch-together-stage .face-tile {
+    flex: 1 1 0;
+    min-height: 0;
+    border-radius: 10px;
+  }
 }
 
 .watch-banner-title {
@@ -3479,17 +3510,6 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   vertical-align: bottom;
-}
-
-
-/* When Doodle is active or browsing, completely hide YouTube controls to avoid overlapping */
-.watch-together-stage.doodle-active .watch-controls-wrap,
-.doodle-active .watch-controls-wrap,
-.watch-together-stage.browsing .watch-controls-wrap,
-.watch-together-stage.doodle-active .watch-pill-wrapper,
-.doodle-active .watch-pill-wrapper,
-.watch-together-stage.browsing .watch-pill-wrapper {
-  display: none !important;
 }
 
 .watch-sync-notice {

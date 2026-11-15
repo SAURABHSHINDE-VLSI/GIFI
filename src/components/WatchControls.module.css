@@ -1,282 +1,188 @@
-.watchPill {
-  display: inline-flex;
+.watchBar {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  height: var(--dock-height, 82px);
-  border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: linear-gradient(180deg, rgba(38, 14, 28, 0.88), rgba(15, 6, 12, 0.94));
-  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  pointer-events: auto;
-  user-select: none;
-  z-index: 45;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 14px;
+  background: rgba(18, 16, 20, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
   box-sizing: border-box;
+  gap: 8px;
 }
 
 .playbackGroup {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
 }
 
+.metaGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .iconBtn {
-  width: 40px;
-  height: 40px;
-  flex: none;
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--cream, #f5f0eb);
   cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
   padding: 0;
-  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.iconBtn:hover {
-  background: rgba(255, 255, 255, 0.16);
-  transform: translateY(-1px);
+/* Ensure 44x44 minimum touch target */
+.iconBtn::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 44px;
+  min-height: 44px;
+  width: 100%;
+  height: 100%;
+}
+
+@media (hover: hover) {
+  .iconBtn:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
 }
 
 .iconBtn:active {
-  transform: scale(0.94);
+  transform: scale(0.95);
 }
 
 .iconBtn:focus-visible {
-  outline: 2px solid #ff709c;
+  outline: 2px solid var(--rose, #e05375);
   outline-offset: 2px;
 }
 
 .primaryBtn {
-  width: 52px;
-  height: 52px;
-  border: none;
-  background: linear-gradient(135deg, #e8608a, #c8346a);
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(200, 52, 106, 0.45);
+  background: linear-gradient(135deg, #e05375 0%, #b83256 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(224, 83, 117, 0.35);
 }
 
-.primaryBtn:hover {
-  background: linear-gradient(135deg, #f0709a, #d13d76);
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .primaryBtn:hover {
+    background: linear-gradient(135deg, #ea6385 0%, #c4395f 100%);
+    color: #ffffff;
+  }
 }
 
-.divider {
-  width: 1px;
-  height: 28px;
-  background: rgba(255, 255, 255, 0.14);
-  margin: 0 4px;
-  align-self: center;
-  flex-shrink: 0;
-}
-
-.timeDisplay {
-  font-variant-numeric: tabular-nums;
-  font-size: 13px;
-  font-weight: 500;
-  min-width: 52px;
-  text-align: center;
-  color: var(--muted, rgba(255, 255, 255, 0.75));
-  letter-spacing: 0.02em;
-  padding: 0 4px;
-  flex: none;
-}
-
-.syncPill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 40px;
-  min-height: 40px;
-  padding: 0 12px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.18s ease;
-  box-sizing: border-box;
-}
-
-.syncPill:focus-visible {
-  outline: 2px solid #5fd08a;
+.primaryBtn:focus-visible {
+  outline: 2px solid #ffffff;
   outline-offset: 2px;
 }
 
-.syncOn {
-  background: #5fd08a;
-  border: 1px solid #4dbd76;
-  color: #0d2818;
-  box-shadow: 0 0 12px rgba(95, 208, 138, 0.35);
+.timeDisplay {
+  font-size: 13px;
+  font-family: var(--font-body, ui-sans-serif, system-ui, sans-serif);
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.02em;
+  user-select: none;
 }
 
-.syncOn:hover {
-  background: #6fe09a;
-  border-color: #5fd08a;
+@media (max-width: 699px) {
+  .timeDisplay {
+    display: none;
+  }
+}
+
+@media (max-width: 350px) {
+  .navBtn {
+    display: none;
+  }
+}
+
+.syncPill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  touch-action: manipulation;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  user-select: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--cream, #f5f0eb);
+}
+
+.syncPill::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 44px;
+  min-height: 44px;
+  width: 100%;
+  height: 100%;
+}
+
+.syncOn {
+  background: rgba(95, 208, 138, 0.15);
+  border-color: rgba(95, 208, 138, 0.35);
+  color: #5fd08a;
 }
 
 .syncOff {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.syncOff:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
-}
-
-.syncDisabled {
-  opacity: 0.55;
-  cursor: not-allowed;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.5);
 }
 
 .syncDot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: #0d2818;
-  box-shadow: 0 0 4px rgba(13, 40, 24, 0.6);
-  animation: syncDotPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  flex-shrink: 0;
-}
-
-.syncOff .syncDot {
-  background: #888;
-  box-shadow: none;
-  animation: none;
-}
-
-.syncDotDisabled {
-  background: #666;
-  box-shadow: none;
-  animation: none;
-}
-
-.syncLabel {
-  white-space: nowrap;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
 }
 
 .closeBtn {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.14);
-  color: #fff;
+  color: rgba(255, 255, 255, 0.6);
 }
 
-.closeBtn:hover,
+@media (hover: hover) {
+  .closeBtn:hover {
+    color: #ff5252;
+    background: rgba(255, 82, 82, 0.15);
+  }
+}
+
 .closeBtn:focus-visible {
-  background: rgba(239, 68, 68, 0.28);
-  border-color: rgba(239, 68, 68, 0.5);
-  color: #ff8888;
+  color: #ff5252;
+  background: rgba(255, 82, 82, 0.15);
+  outline: 2px solid #ff5252;
+  outline-offset: 2px;
 }
 
 .spotifyNote {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-  padding: 0 8px;
-  white-space: nowrap;
-}
-
-@keyframes syncDotPulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.35);
-    opacity: 0.6;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .syncDot {
-    animation: none !important;
-  }
-  .iconBtn,
-  .syncPill {
-    transition: none !important;
-  }
-}
-
-.metaGroup {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* At medium widths (481px - 680px): hide the time before hiding any button */
-@media (max-width: 680px) and (min-width: 481px) {
-  .timeDisplay,
-  .divider {
-    display: none;
-  }
-}
-
-/* At phone widths (480px and below): split into two rows so width never exceeds 100vw - 24px */
-@media (max-width: 480px) {
-  .watchPill {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 14px;
-    height: auto;
-    min-height: auto;
-    border-radius: 28px;
-    max-width: calc(100vw - 24px);
-    box-sizing: border-box;
-  }
-
-  .divider {
-    display: none;
-  }
-
-  .playbackGroup {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    width: 100%;
-  }
-
-  .metaGroup {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-  }
-
-  .timeDisplay {
-    display: inline-block;
-    font-size: 12px;
-    min-width: 44px;
-    padding: 0 4px;
-  }
-
-  .iconBtn {
-    width: 38px;
-    height: 38px;
-  }
-
-  .primaryBtn {
-    width: 46px;
-    height: 46px;
-  }
-
-  .syncPill {
-    height: 36px;
-    min-height: 36px;
-    padding: 0 10px;
-    font-size: 11px;
-  }
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
 }
