@@ -212,83 +212,34 @@ function readGesture(hand?: Landmark[]) {
   return null;
 }
 
-function renderDebugOverlay(
-  canvas: HTMLCanvasElement,
-  hands: Landmark[][],
+interface DebugTimings {
+  handMs: number;
+  faceMs: number;
+  loopMs: number;
+  poseToTriggerMs: number;
+}
+
+function updateDebugOverlay(
+  contentEl: HTMLElement | null,
   heartResult: TwoHandHeartResult,
+  timings: DebugTimings,
 ) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  const w = (canvas.width = canvas.clientWidth || 320);
-  const h = (canvas.height = canvas.clientHeight || 240);
-  ctx.clearRect(0, 0, w, h);
-
-  // Draw hand landmarks
-  for (let hIdx = 0; hIdx < hands.length; hIdx++) {
-    const hand = hands[hIdx];
-    ctx.fillStyle = hIdx === 0 ? "#00ffff" : "#ff00ff";
-    for (let i = 0; i < hand.length; i++) {
-      const pt = hand[i];
-      ctx.beginPath();
-      ctx.arc(pt.x * w, pt.y * h, 3, 0, 2 * Math.PI);
-      ctx.fill();
-    }
-  }
-
-  // Draw metrics HUD
+  if (!contentEl) return;
   const m = heartResult.metrics;
-  ctx.fillStyle = "rgba(0, 0, 0, 0.78)";
-  ctx.fillRect(4, 4, 195, 116);
+  const statusColor = heartResult.match ? "#5fd08a" : "#ff4f81";
+  const latencyStr = timings.poseToTriggerMs > 0 ? `${timings.poseToTriggerMs}ms` : "idle";
 
-  ctx.font = "bold 11px monospace";
-  ctx.fillStyle = heartResult.match ? "#5fd08a" : "#ff4f81";
-  ctx.fillText(
-    `HEART: ${heartResult.match ? "MATCH" : "NO MATCH"} (${m.detectedHands} hands)`,
-    8,
-    18,
-  );
-
-  ctx.font = "10px monospace";
-  ctx.fillStyle = m.thumbDistanceRatio < HEART_CONFIG.maxThumbDistanceRatio ? "#5fd08a" : "#ffffff";
-  ctx.fillText(
-    `Thumb d: ${m.thumbDistanceRatio.toFixed(2)} (<${HEART_CONFIG.maxThumbDistanceRatio})`,
-    8,
-    34,
-  );
-
-  ctx.fillStyle = m.indexDistanceRatio < HEART_CONFIG.maxIndexDistanceRatio ? "#5fd08a" : "#ffffff";
-  ctx.fillText(
-    `Index d: ${m.indexDistanceRatio.toFixed(2)} (<${HEART_CONFIG.maxIndexDistanceRatio})`,
-    8,
-    48,
-  );
-
-  ctx.fillStyle =
-    m.verticalOffsetRatio >= HEART_CONFIG.minIndexAboveThumbRatio ? "#5fd08a" : "#ffffff";
-  ctx.fillText(
-    `Vert dy: ${m.verticalOffsetRatio.toFixed(2)} (>=${HEART_CONFIG.minIndexAboveThumbRatio})`,
-    8,
-    62,
-  );
-
-  ctx.fillStyle =
-    m.midpointDeltaXRatio <= HEART_CONFIG.maxMidpointDeltaXRatio ? "#5fd08a" : "#ffffff";
-  ctx.fillText(
-    `Mid dX : ${m.midpointDeltaXRatio.toFixed(2)} (<=${HEART_CONFIG.maxMidpointDeltaXRatio})`,
-    8,
-    76,
-  );
-
-  ctx.fillStyle =
-    m.wristVsIndexRatio > HEART_CONFIG.minWristSeparationRatio ? "#5fd08a" : "#ffffff";
-  ctx.fillText(
-    `WristSep: ${m.wristVsIndexRatio.toFixed(2)} (>${HEART_CONFIG.minWristSeparationRatio})`,
-    8,
-    90,
-  );
-
-  ctx.fillStyle = m.withinBounds ? "#5fd08a" : "#ff4f81";
-  ctx.fillText(`Bounds : ${m.withinBounds ? "OK" : "EDGE"} | s=${m.handScale.toFixed(2)}`, 8, 104);
+  contentEl.innerHTML = `
+    <div style="font-weight:bold;color:${statusColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+      HEART: ${heartResult.match ? "MATCH" : "NO"} (${m.detectedHands}h) | Pose→Trigger: ${latencyStr}
+    </div>
+    <div style="color:#d1d5db;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+      Hand: ${timings.handMs.toFixed(1)}ms · Face: ${timings.faceMs.toFixed(1)}ms · Loop: ${timings.loopMs.toFixed(1)}ms
+    </div>
+    <div style="color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+      T:${m.thumbDistanceRatio.toFixed(2)}(&lt;${HEART_CONFIG.maxThumbDistanceRatio}) I:${m.indexDistanceRatio.toFixed(2)}(&lt;${HEART_CONFIG.maxIndexDistanceRatio}) dy:${m.verticalOffsetRatio.toFixed(2)} W:${m.wristVsIndexRatio.toFixed(2)}
+    </div>
+  `;
 }
 
 /**
@@ -327,20 +278,54 @@ export function useGestureReactions({
     let lastHeartFired = 0;
     let lastHeartSeen = 0;
     let hasSeparatedAfterHeart = true;
+    let poseStartTime = 0;
+    const timings: DebugTimings = {
+      handMs: 0,
+      faceMs: 0,
+      loopMs: 0,
+      poseToTriggerMs: 0,
+    };
 
-    // Tuning aid: Debug overlay setup
+    // Tuning aid: Debug overlay setup - ONLY when URL has ?gestureDebug=1
     const isDebug =
-      (typeof process !== "undefined" && process.env.NODE_ENV === "development") ||
-      (typeof window !== "undefined" && window.location.search.includes("gestureDebug=1"));
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("gestureDebug") === "1";
 
-    let debugCanvas: HTMLCanvasElement | null = null;
+    let debugWrap: HTMLDivElement | null = null;
+    let debugContent: HTMLDivElement | null = null;
+    let isCollapsed = false;
+
     if (isDebug && typeof document !== "undefined") {
       const container = document.querySelector(".local-tile, .face-tile-self") || document.body;
-      debugCanvas = document.createElement("canvas");
-      debugCanvas.className = "gesture-debug-canvas";
-      debugCanvas.style.cssText =
-        "position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:99;";
-      container.appendChild(debugCanvas);
+      debugWrap = document.createElement("div");
+      debugWrap.className = "gesture-debug-wrap";
+      debugWrap.style.cssText =
+        "position:absolute;bottom:0;left:0;right:0;max-height:35%;z-index:99;display:flex;flex-direction:column;pointer-events:none;box-sizing:border-box;font-family:monospace;font-size:10px;";
+
+      const toggleBtn = document.createElement("button");
+      toggleBtn.type = "button";
+      toggleBtn.className = "gesture-debug-toggle";
+      toggleBtn.textContent = "[HUD: ON]";
+      toggleBtn.style.cssText =
+        "pointer-events:auto;min-width:44px;min-height:44px;padding:4px 8px;font-size:10px;font-family:monospace;background:rgba(18,7,16,0.85);color:#ff94b4;border:1px solid rgba(255,255,255,0.2);border-radius:6px 6px 0 0;align-self:flex-start;cursor:pointer;touch-action:manipulation;line-height:1;";
+
+      debugContent = document.createElement("div");
+      debugContent.className = "gesture-debug-content";
+      debugContent.style.cssText =
+        "pointer-events:none;background:rgba(10,4,8,0.88);color:#fff;padding:4px 8px;border-top:1px solid rgba(255,255,255,0.15);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3;";
+
+      toggleBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        isCollapsed = !isCollapsed;
+        if (debugContent) {
+          debugContent.style.display = isCollapsed ? "none" : "block";
+        }
+        toggleBtn.textContent = isCollapsed ? "[HUD: OFF]" : "[HUD: ON]";
+      });
+
+      debugWrap.appendChild(toggleBtn);
+      debugWrap.appendChild(debugContent);
+      container.appendChild(debugWrap);
     }
 
     const video = document.createElement("video");
@@ -379,15 +364,31 @@ export function useGestureReactions({
       }
 
       lastFrame = video.currentTime;
-      let now = performance.now();
+      const loopStart = performance.now();
+      let now = loopStart;
 
       let gesture: string | null = null;
+      let heartCheckResult: TwoHandHeartResult = {
+        match: false,
+        metrics: {
+          detectedHands: 0,
+          handScale: 0,
+          thumbDistanceRatio: 0,
+          indexDistanceRatio: 0,
+          verticalOffsetRatio: 0,
+          midpointDeltaXRatio: 0,
+          wristVsIndexRatio: 0,
+          withinBounds: false,
+        },
+      };
 
       // 1. Check face strictly for deliberate lip kiss / pucker only (speech-proof & movement-proof)
       if (faceLandmarker) {
         if (now <= lastFaceTime) now = lastFaceTime + 1;
         lastFaceTime = now;
+        const faceStart = performance.now();
         const faceResult = safeVisionDetect(() => faceLandmarker.detectForVideo(video, now));
+        timings.faceMs = performance.now() - faceStart;
         const blendshapes = faceResult?.faceBlendshapes?.[0]?.categories;
         const landmarks = faceResult?.faceLandmarks?.[0];
 
@@ -441,40 +442,47 @@ export function useGestureReactions({
       if (!gesture && handLandmarker) {
         if (now <= lastHandTime) now = lastHandTime + 1;
         lastHandTime = now;
+        const handStart = performance.now();
         const handResult = safeVisionDetect(() => handLandmarker.detectForVideo(video, now));
+        timings.handMs = performance.now() - handStart;
         const allHands: Landmark[][] = handResult?.landmarks || [];
 
         if (allHands.length === 2) {
-          const heartCheck = isTwoHandHeart(allHands);
-          if (heartCheck.match) {
+          heartCheckResult = isTwoHandHeart(allHands);
+          if (heartCheckResult.match) {
             gesture = "two_hand_heart";
             lastHeartSeen = Date.now();
-          }
-          if (debugCanvas) {
-            renderDebugOverlay(debugCanvas, allHands, heartCheck);
+            if (poseStartTime === 0) poseStartTime = performance.now();
+          } else {
+            poseStartTime = 0;
           }
         } else {
-          if (debugCanvas) {
-            renderDebugOverlay(debugCanvas, allHands, {
-              match: false,
-              metrics: {
-                detectedHands: allHands.length,
-                handScale: allHands[0] ? distance(allHands[0][0], allHands[0][9]) : 0,
-                thumbDistanceRatio: 0,
-                indexDistanceRatio: 0,
-                verticalOffsetRatio: 0,
-                midpointDeltaXRatio: 0,
-                wristVsIndexRatio: 0,
-                withinBounds: false,
-              },
-            });
-          }
+          poseStartTime = 0;
+          heartCheckResult = {
+            match: false,
+            metrics: {
+              detectedHands: allHands.length,
+              handScale: allHands[0] ? distance(allHands[0][0], allHands[0][9]) : 0,
+              thumbDistanceRatio: 0,
+              indexDistanceRatio: 0,
+              verticalOffsetRatio: 0,
+              midpointDeltaXRatio: 0,
+              wristVsIndexRatio: 0,
+              withinBounds: false,
+            },
+          };
         }
 
         // If two-hand heart not active, check single hand gestures on the first hand
         if (!gesture && allHands.length > 0) {
           gesture = readGesture(allHands[0]);
         }
+      }
+
+      timings.loopMs = performance.now() - loopStart;
+
+      if (debugContent && !isCollapsed) {
+        updateDebugOverlay(debugContent, heartCheckResult, timings);
       }
 
       // Hands must separate (~600ms without match) before the next heart trigger
@@ -500,6 +508,9 @@ export function useGestureReactions({
               hasSeparatedAfterHeart = false;
               lastHeartSeen = nowMs;
               history.length = 0;
+              if (poseStartTime > 0) {
+                timings.poseToTriggerMs = Math.round(performance.now() - poseStartTime);
+              }
               onHeart();
               break;
             }
@@ -539,8 +550,8 @@ export function useGestureReactions({
     return () => {
       stopped = true;
       if (timer) clearInterval(timer);
-      if (debugCanvas && debugCanvas.parentNode) {
-        debugCanvas.parentNode.removeChild(debugCanvas);
+      if (debugWrap && debugWrap.parentNode) {
+        debugWrap.parentNode.removeChild(debugWrap);
       }
       track.mediaStreamTrack?.removeEventListener("ended", onTrackEnded);
       try {
