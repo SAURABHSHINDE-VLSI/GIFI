@@ -113,11 +113,14 @@ export default function VideoStage({
             </div>
           </div>
         ) : (
-          <VideoTrack
-            trackRef={stage}
-            className="stage-video mirror"
-            playsInline
-          />
+          <div className="stage-partner-tile">
+            <VideoTrack
+              trackRef={stage}
+              className="stage-video mirror"
+              playsInline
+            />
+            <span className="face-tag">{partnerLabel}</span>
+          </div>
         )
       ) : focusMode === "self" ? (
         <div className="stage-empty">

@@ -15,6 +15,7 @@
   --shadow: 0 34px 90px rgba(0, 0, 0, 0.55);
   --dock-bottom: calc(10px + env(safe-area-inset-bottom));
   --dock-height: 82px;
+  --transport-h: 48px;
 }
 
 *,
@@ -897,6 +898,19 @@ button {
   border: none;
   background: radial-gradient(circle at 50% 28%, #2b0f20, #0a0408 72%);
   overflow: hidden;
+}
+
+.stage-partner-tile {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.watch-player-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .stage-video {
@@ -3426,6 +3440,13 @@ button {
     overflow: hidden;
   }
 
+  /* -------------------------------------------------------------
+     CASE A: SOMETHING IS SHARED (Watch Together or Screen Share)
+     3 Equal Rows:
+     Row 1 = Media (Watch Card or Screen Share)
+     Row 2 = Partner Camera Tile
+     Row 3 = Self Camera Tile
+     ------------------------------------------------------------- */
   .stage-with-faces,
   .stage-with-faces.watch-together-stage {
     position: relative !important;
@@ -3436,75 +3457,229 @@ button {
     min-height: 0 !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 10px !important;
-    padding: calc(48px + env(safe-area-inset-top, 0px)) 12px 6px 12px !important;
+    padding: calc(48px + env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 10px max(12px, env(safe-area-inset-left, 0px)) !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
   }
 
   .stage-with-faces-inner,
   .stage-with-faces.watch-together-stage .stage-with-faces-inner {
-    display: flex !important;
-    flex-direction: column !important;
+    display: grid !important;
+    grid-auto-rows: minmax(0, 1fr) !important;
+    grid-template-rows: 1fr 1fr 1fr !important;
     gap: 10px !important;
     width: 100% !important;
+    height: 100% !important;
     flex: 1 !important;
     min-height: 0 !important;
-    height: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 
+  /* Short phones (< 720px tall): 1.3fr for media row, 1fr each for camera tiles */
+  @media (max-height: 719px) {
+    .stage-with-faces-inner,
+    .stage-with-faces.watch-together-stage .stage-with-faces-inner {
+      grid-template-rows: 1.3fr 1fr 1fr !important;
+    }
+  }
+
+  /* Flatten .face-tiles so its 2 children become direct rows 2 and 3 in the grid */
+  .face-tiles,
+  .stage-with-faces .face-tiles,
+  .stage-with-faces.watch-together-stage .face-tiles {
+    display: contents !important;
+  }
+
+  /* ROW 1: WATCH CARD (When Watch Together is active) */
   .watch-card-container,
   .stage-with-faces.watch-together-stage .watch-card-container {
-    flex: 0 0 auto !important;
     width: 100% !important;
-    height: auto !important;
-    container-type: normal !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    border-radius: 16px !important;
+    background: #000 !important;
     display: block !important;
+    flex: none !important;
   }
 
   .watch-card,
   .stage-with-faces.watch-together-stage .watch-card {
     position: relative !important;
     width: 100% !important;
-    max-width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
     display: flex !important;
     flex-direction: column !important;
     border-radius: 16px !important;
     overflow: hidden !important;
+    background: #000 !important;
   }
 
   .watch-video-frame,
   .stage-with-faces.watch-together-stage .watch-video-frame {
     position: relative !important;
     width: 100% !important;
-    aspect-ratio: 16 / 9 !important;
-    height: auto !important;
-    border-top-left-radius: 16px !important;
-    border-top-right-radius: 16px !important;
+    height: calc(100% - var(--transport-h, 48px)) !important;
+    min-height: 0 !important;
+    aspect-ratio: auto !important;
+    container-type: size !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: #000 !important;
     overflow: hidden !important;
   }
 
-  .face-tiles,
-  .stage-with-faces.watch-together-stage .face-tiles {
+  .watch-player-wrapper {
     position: relative !important;
-    inset: auto !important;
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 8px !important;
+    aspect-ratio: 16 / 9 !important;
     width: 100% !important;
-    flex: 1 1 auto !important;
-    min-height: 96px !important;
-    max-height: 240px !important;
-    height: auto !important;
-    z-index: 1 !important;
+    width: min(100cqw, calc(100cqh * 16 / 9)) !important;
+    max-height: 100% !important;
+    max-width: 100% !important;
   }
 
-  .face-tile,
-  .stage-with-faces.watch-together-stage .face-tile {
-    flex: 1 1 0 !important;
-    min-width: 0 !important;
+  .watch-stage-iframe {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
     height: 100% !important;
-    border-radius: 12px !important;
+    border: 0 !important;
+  }
+
+  /* ROW 1: SCREEN SHARE CARD (When screen share is active) */
+  .stage-video-wrap {
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    border-radius: 16px !important;
+    background: #000 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: none !important;
+  }
+
+  .stage-video-wrap video,
+  .stage-video-wrap .stage-video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+  }
+
+  .stage-video-wrap .stage-banner {
+    position: absolute !important;
+    top: 8px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    max-width: 90% !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    z-index: 10 !important;
+    pointer-events: none !important;
+  }
+
+  /* ROWS 2 & 3: CAMERA TILES (Partner & Self) */
+  .face-tile,
+  .stage-with-faces .face-tile,
+  .stage-with-faces.watch-together-stage .face-tile {
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    border-radius: 16px !important;
+    border: 2px solid rgba(255, 255, 255, 0.22) !important;
+    background: #170a12 !important;
+    overflow: hidden !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+    flex: none !important;
+  }
+
+  .face-tile video,
+  .face-video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  /* -------------------------------------------------------------
+     CASE B: NOTHING IS SHARED (Standard 1-on-1 Call)
+     2 Equal Rows:
+     Row 1 = Partner Camera Tile
+     Row 2 = Self Camera Tile
+     ------------------------------------------------------------- */
+  .call-stage {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-rows: 1fr 1fr !important;
+    grid-auto-rows: minmax(0, 1fr) !important;
+    gap: 10px !important;
+    padding: calc(48px + env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 10px max(12px, env(safe-area-inset-left, 0px)) !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  /* Row 1: Partner Tile */
+  .call-stage > .stage-partner-tile,
+  .call-stage > .stage-video,
+  .call-stage > .stage-empty {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    background: #170a12 !important;
+    border: 2px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  .call-stage > .stage-partner-tile video,
+  .call-stage > .stage-video video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  /* Row 2: Self Tile */
+  .call-stage > .local-tile {
+    position: relative !important;
+    inset: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    background: #170a12 !important;
+    border: 2px solid rgba(255, 255, 255, 0.22) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+    z-index: 2 !important;
+  }
+
+  .call-stage > .local-tile video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  /* Ensure overlays in .call-stage don't occupy grid cells */
+  .call-stage > .stage-banner,
+  .call-stage > .gesture-hint,
+  .call-stage > .stage-veil {
+    position: absolute !important;
+    z-index: 15 !important;
   }
 }
 
@@ -7728,6 +7903,7 @@ button {
     box-sizing: border-box !important;
   }
 
+  .call-stage .stage-partner-tile,
   .call-stage .stage-video {
     position: relative !important;
     inset: auto !important;

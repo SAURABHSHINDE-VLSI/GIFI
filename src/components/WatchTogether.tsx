@@ -1163,29 +1163,31 @@ export default function WatchTogether({
                 </div>
               )}
               <div className="watch-video-frame">
-                {clock.mediaType === "spotify" ? (
-                  <iframe
-                    key={clock.videoId}
-                    className="watch-stage-iframe spotify-player"
-                    src={buildSpotifyEmbedUrl(clock.videoId)}
-                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                    title={clock.title}
-                  />
-                ) : (
-                  <iframe
-                    key={clock.videoId}
-                    ref={iframeRef}
-                    className="watch-stage-iframe"
-                    src={buildYouTubeEmbedUrl(
-                      clock.videoId,
-                      initialStartSecondRef.current,
-                      typeof window !== "undefined" ? window.location.origin : "",
-                    )}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    title={clock.title}
-                  />
-                )}
+                <div className="watch-player-wrapper">
+                  {clock.mediaType === "spotify" ? (
+                    <iframe
+                      key={clock.videoId}
+                      className="watch-stage-iframe spotify-player"
+                      src={buildSpotifyEmbedUrl(clock.videoId)}
+                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                      title={clock.title}
+                    />
+                  ) : (
+                    <iframe
+                      key={clock.videoId}
+                      ref={iframeRef}
+                      className="watch-stage-iframe"
+                      src={buildYouTubeEmbedUrl(
+                        clock.videoId,
+                        initialStartSecondRef.current,
+                        typeof window !== "undefined" ? window.location.origin : "",
+                      )}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      title={clock.title}
+                    />
+                  )}
+                </div>
               </div>
 
               {!doodleActive && !pickerModalOpen && (
