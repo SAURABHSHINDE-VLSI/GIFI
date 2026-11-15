@@ -95,11 +95,13 @@ export default function AuthCard() {
               <label htmlFor="displayName">your name</label>
               <input
                 id="displayName"
+                name="name"
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
                 placeholder="your name"
                 maxLength={24}
-                autoComplete="nickname"
+                autoComplete="name"
+                enterKeyHint="next"
               />
             </div>
           )}
@@ -108,13 +110,16 @@ export default function AuthCard() {
             <label htmlFor="username">your id</label>
             <input
               id="username"
+              name="username"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               placeholder="e.g. saurabh_07"
               autoComplete="username"
               autoCapitalize="none"
+              autoCorrect="off"
               spellCheck={false}
               maxLength={20}
+              enterKeyHint="next"
             />
           </div>
 
@@ -122,11 +127,13 @@ export default function AuthCard() {
             <label htmlFor="password">password</label>
             <input
               id="password"
+              name="password"
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder={mode === "signup" ? "at least 8 characters" : "your password"}
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              enterKeyHint="go"
             />
           </div>
 

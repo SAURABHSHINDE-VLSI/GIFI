@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { formatTime } from "@/lib/ui";
 
@@ -91,6 +91,23 @@ export default function OrigamiNotes({
 
   // Active note in unfold modal
   const [readingNote, setReadingNote] = useState<OrigamiItem | null>(null);
+
+  useEffect(() => {
+    if (!composerOpen && !readingNote) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setComposerOpen(false);
+        setReadingNote(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [composerOpen, readingNote]);
 
   const receivedNotes = notes.filter((n) => !n.fromMe);
   const sentNotes = notes.filter((n) => n.fromMe);

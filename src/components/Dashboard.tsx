@@ -445,12 +445,16 @@ export default function Dashboard() {
               <label htmlFor="pair-code">partner's code</label>
               <input
                 id="pair-code"
+                name="pair-code"
                 value={joinCode}
                 onChange={(event) => setJoinCode(event.target.value)}
                 placeholder="ABCD-2345"
+                autoComplete="off"
                 autoCapitalize="characters"
-                maxLength={9}
+                autoCorrect="off"
                 spellCheck={false}
+                maxLength={9}
+                enterKeyHint="go"
               />
             </div>
 

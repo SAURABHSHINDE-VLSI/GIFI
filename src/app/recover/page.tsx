@@ -63,13 +63,16 @@ export default function RecoverPage() {
                 <label htmlFor="username">your id</label>
                 <input
                   id="username"
+                  name="username"
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
                   placeholder="the id you forgot the password for"
                   autoComplete="username"
                   autoCapitalize="none"
+                  autoCorrect="off"
                   spellCheck={false}
                   maxLength={20}
+                  enterKeyHint="next"
                 />
               </div>
 
@@ -77,13 +80,16 @@ export default function RecoverPage() {
                 <label htmlFor="key">recovery key</label>
                 <input
                   id="key"
+                  name="key"
                   type="password"
                   value={key}
                   onChange={(event) => setKey(event.target.value)}
                   placeholder="owner recovery key"
                   autoComplete="off"
                   autoCapitalize="none"
+                  autoCorrect="off"
                   spellCheck={false}
+                  enterKeyHint="next"
                 />
               </div>
 
@@ -91,11 +97,13 @@ export default function RecoverPage() {
                 <label htmlFor="newPassword">new password</label>
                 <input
                   id="newPassword"
+                  name="newPassword"
                   type="password"
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
                   placeholder="at least 8 characters"
                   autoComplete="new-password"
+                  enterKeyHint="go"
                 />
               </div>
 
