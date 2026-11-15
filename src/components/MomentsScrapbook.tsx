@@ -414,7 +414,7 @@ export default function MomentsScrapbook({ isOpen, onClose }: Props) {
                     onClick={() => setActivePhoto(moment)}
                   >
                     <div className="polaroid-img-wrap">
-                      <img src={moment.image} alt={moment.caption || "Couple Memory"} loading="lazy" />
+                      <img src={moment.image} alt={moment.caption || "Couple Memory"} loading="lazy" decoding="async" />
                     </div>
                     <div className="polaroid-caption">
                       <p className="polaroid-text">{moment.caption || `Captured by ${moment.by}`}</p>
@@ -447,7 +447,7 @@ export default function MomentsScrapbook({ isOpen, onClose }: Props) {
           <div className="polaroid-lightbox" onClick={() => setActivePhoto(null)}>
             <div className="polaroid-lightbox-card" onClick={(e) => e.stopPropagation()}>
               <div className="polaroid-lightbox-img-wrap">
-                <img src={activePhoto.image} alt="Expanded memory" />
+                <img src={activePhoto.image} alt="Expanded memory" decoding="async" />
               </div>
 
               <div className="polaroid-lightbox-meta">

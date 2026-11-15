@@ -4887,6 +4887,8 @@ button {
 }
 
 .polaroid-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 260px 320px;
   background: #ffffff;
   padding: 10px 10px 16px 10px;
   border-radius: 3px;

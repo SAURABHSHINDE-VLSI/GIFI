@@ -2,8 +2,10 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Icon } from "./Icons";
-import MomentsScrapbook from "./MomentsScrapbook";
+
+const MomentsScrapbook = dynamic(() => import("./MomentsScrapbook"), { ssr: false });
 import HeartSignal from "./HeartSignal";
 import DualClockArc from "./DualClockArc";
 import OrigamiNotes, { OrigamiItem } from "./OrigamiNotes";

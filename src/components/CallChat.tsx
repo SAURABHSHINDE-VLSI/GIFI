@@ -218,7 +218,7 @@ export default function CallChat({
                   <div className="call-chat-bubble-inner">
                     {item.text && <p className="call-chat-text">{item.text}</p>}
                     {item.image && (
-                      <img className="call-chat-img" src={item.image} alt={`Screenshot from ${item.name}`} loading="lazy" />
+                      <img className="call-chat-img" src={item.image} alt={`Screenshot from ${item.name}`} loading="lazy" decoding="async" />
                     )}
                     <div className="call-chat-foot">
                       <span className="call-chat-time">{timeOf(item.at)}</span>

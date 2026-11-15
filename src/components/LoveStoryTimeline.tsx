@@ -302,7 +302,7 @@ export default function LoveStoryTimeline({
 
                     <div className="node-card polaroid-card-preview" onClick={onOpenScrapbook}>
                       <div className="polaroid-photo-frame">
-                        <img src={p.image} alt={p.caption || "Scrapbook moment"} className="polaroid-thumb" />
+                        <img src={p.image} alt={p.caption || "Scrapbook moment"} className="polaroid-thumb" loading="lazy" decoding="async" />
                         <span className="polaroid-tape" />
                       </div>
                       <div className="polaroid-info">

@@ -27,10 +27,12 @@ import {
   saveWatchSyncPref,
   type EffectsPrefs,
 } from "@/lib/effects";
-import WatchTogether from "./WatchTogether";
-import LoveCanvas from "./LoveCanvas";
-import MomentsScrapbook from "./MomentsScrapbook";
-import EffectsSheet from "./EffectsSheet";
+import dynamic from "next/dynamic";
+
+const WatchTogether = dynamic(() => import("./WatchTogether"), { ssr: false });
+const LoveCanvas = dynamic(() => import("./LoveCanvas"), { ssr: false });
+const MomentsScrapbook = dynamic(() => import("./MomentsScrapbook"), { ssr: false });
+const EffectsSheet = dynamic(() => import("./EffectsSheet"), { ssr: false });
 import { applyNoiseSuppression } from "@/lib/audioEffects";
 import { useBackgroundEffect } from "@/lib/useBackgroundEffect";
 import { Icon } from "./Icons";

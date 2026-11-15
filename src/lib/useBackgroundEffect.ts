@@ -2,11 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { LocalVideoTrack } from "livekit-client";
-import {
-  BackgroundProcessor,
-  supportsBackgroundProcessors,
-  type BackgroundProcessorWrapper,
-} from "@livekit/track-processors";
+import type { BackgroundProcessorWrapper } from "@livekit/track-processors";
 import {
   getBlurRadius,
   loadPrefs,
@@ -27,6 +23,14 @@ export type UseBackgroundEffectResult = {
   error: string | null;
 };
 
+let trackProcessorsPromise: Promise<typeof import("@livekit/track-processors")> | null = null;
+function getTrackProcessors() {
+  if (!trackProcessorsPromise) {
+    trackProcessorsPromise = import("@livekit/track-processors");
+  }
+  return trackProcessorsPromise;
+}
+
 export function useBackgroundEffect({
   track,
   mode,
@@ -41,18 +45,33 @@ export function useBackgroundEffect({
   const currentTrackRef = useRef<LocalVideoTrack | null>(null);
   const operationSeqRef = useRef(0);
 
-  // Check processor support on mount
+  // Check processor support on mount with fast WebGL check to avoid loading bundle
   useEffect(() => {
     try {
-      if (typeof window !== "undefined" && supportsBackgroundProcessors()) {
-        setSupported(true);
+      if (typeof window !== "undefined") {
+        const canvas = document.createElement("canvas");
+        const hasWebGL = Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl"));
+        if (!hasWebGL) {
+          setSupported(false);
+          return;
+        }
+
+        if (mode !== "off") {
+          getTrackProcessors()
+            .then(({ supportsBackgroundProcessors }) => {
+              setSupported(supportsBackgroundProcessors());
+            })
+            .catch(() => setSupported(false));
+        } else {
+          setSupported(true);
+        }
       } else {
         setSupported(false);
       }
     } catch {
       setSupported(false);
     }
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     // If not supported or no window, do nothing
@@ -106,6 +125,13 @@ export function useBackgroundEffect({
       try {
         setLoading(true);
         setError(null);
+
+        const { BackgroundProcessor, supportsBackgroundProcessors } = await getTrackProcessors();
+        if (!supportsBackgroundProcessors()) {
+          setSupported(false);
+          onModeChange("off");
+          return;
+        }
 
         if (!processorRef.current) {
           // Create processor once for this track with self-hosted MediaPipe assets

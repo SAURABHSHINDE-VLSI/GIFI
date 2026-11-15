@@ -40,6 +40,12 @@ function playKissSound() {
   }
 }
 
+function shouldSkipAnimation() {
+  if (typeof document !== "undefined" && document.hidden) return true;
+  if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return true;
+  return false;
+}
+
 export function useHearts(room: Room, onKissReceived?: () => void) {
   const [bursts, setBursts] = useState<Burst[]>([]);
   const [emojiBursts, setEmojiBursts] = useState<KissBurst[]>([]);
@@ -50,7 +56,20 @@ export function useHearts(room: Room, onKissReceived?: () => void) {
     return () => timers.forEach(clearTimeout);
   }, []);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const handleVisibility = () => {
+      if (document.hidden) {
+        setBursts([]);
+        setEmojiBursts([]);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
   const burst = useCallback(() => {
+    if (shouldSkipAnimation()) return;
     const batch: Burst[] = Array.from({ length: 7 }, (_, index) => ({
       id: Date.now() + index,
       left: 12 + Math.random() * 72,
@@ -70,6 +89,7 @@ export function useHearts(room: Room, onKissReceived?: () => void) {
     if (emoji === "💋") {
       playKissSound();
     }
+    if (shouldSkipAnimation()) return;
     const count = emoji === "💋" ? 14 : 9;
     const batch: KissBurst[] = Array.from({ length: count }, (_, index) => ({
       id: Date.now() + index + Math.random(),

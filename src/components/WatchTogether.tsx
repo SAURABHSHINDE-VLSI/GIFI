@@ -1075,7 +1075,7 @@ export default function WatchTogether({
                       onClick={() => loadMedia(item.id, item.title, "youtube")}
                     >
                       <span className="yt-thumb-wrap">
-                        <img className="yt-thumb" src={item.thumbnail} alt="" loading="lazy" />
+                        <img className="yt-thumb" src={item.thumbnail} alt="" loading="lazy" decoding="async" />
                         {item.duration && <span className="yt-duration">{item.duration}</span>}
                       </span>
                       <span className="yt-card-title">{item.title}</span>
