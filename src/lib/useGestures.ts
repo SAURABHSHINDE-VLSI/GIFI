@@ -82,13 +82,28 @@ const MODEL_BASE =
 const HAND_MODEL_URL = `${MODEL_BASE}/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`;
 const FACE_MODEL_URL = `${MODEL_BASE}/face_landmarker/face_landmarker/float16/1/face_landmarker.task`;
 
-// Detection interval: ~130ms
-const DETECT_INTERVAL = 130;
-// Sliding window: must detect the gesture in 5 out of the last 7 frames
-const WINDOW_SIZE = 7;
-const REQUIRED_MATCHES = 5;
-const COOLDOWN = 3000; // 3 seconds cooldown between reactions
+// Detection fallback interval if requestVideoFrameCallback unavailable
+const DETECT_INTERVAL = 66;
+// Sliding window: fast 3 matches out of 4 frames
+const WINDOW_SIZE = 4;
+const REQUIRED_MATCHES = 3;
+const HEART_COOLDOWN = 2000; // 2 seconds cooldown between heart triggers
+const GESTURE_COOLDOWN = 2500; // 2.5 seconds cooldown between other reactions
 const SEPARATION_REQUIRED_MS = 600; // Hands must separate before next heart trigger
+
+/**
+ * HandLandmarker tuning:
+ * - minHandDetectionConfidence: 0.6 avoids false detections from background clutter
+ * - minHandPresenceConfidence: 0.6 keeps stable hand tracking during hand rotations
+ * - minTrackingConfidence: 0.5 enables rapid frame-to-frame landmark tracking
+ */
+const HAND_OPTIONS_BASE = {
+  runningMode: "VIDEO" as const,
+  numHands: 2,
+  minHandDetectionConfidence: 0.6,
+  minHandPresenceConfidence: 0.6,
+  minTrackingConfidence: 0.5,
+};
 
 let filesetLoader: Promise<{ vision: any; fileset: any }> | null = null;
 let handLoader: Promise<any> | null = null;
@@ -115,14 +130,12 @@ function loadHandLandmarker() {
       try {
         return await vision.HandLandmarker.createFromOptions(fileset, {
           baseOptions: { modelAssetPath: HAND_MODEL_URL, delegate: "GPU" },
-          runningMode: "VIDEO",
-          numHands: 2,
+          ...HAND_OPTIONS_BASE,
         });
       } catch {
         return vision.HandLandmarker.createFromOptions(fileset, {
           baseOptions: { modelAssetPath: HAND_MODEL_URL, delegate: "CPU" },
-          runningMode: "VIDEO",
-          numHands: 2,
+          ...HAND_OPTIONS_BASE,
         });
       }
     })().catch((error) => {
@@ -334,9 +347,20 @@ export function useGestureReactions({
     video.srcObject = new MediaStream([track.mediaStreamTrack]);
     video.play().catch(() => undefined);
 
+    // Dedicated reused 320px canvas to avoid texture upload overhead on high-res camera feeds
+    const inputCanvas = document.createElement("canvas");
+    const inputCtx = inputCanvas.getContext("2d", { willReadFrequently: true });
+
+    let rVfcId: number | null = null;
+    let isDetecting = false;
+
     const onTrackEnded = () => {
       stopped = true;
       if (timer) clearInterval(timer);
+      if (rVfcId !== null && "cancelVideoFrameCallback" in video) {
+        (video as any).cancelVideoFrameCallback(rVfcId);
+        rVfcId = null;
+      }
       try {
         video.pause();
         video.srcObject = null;
@@ -367,6 +391,15 @@ export function useGestureReactions({
       const loopStart = performance.now();
       let now = loopStart;
 
+      // Downscale video frame to 320px width preserving aspect ratio
+      const targetW = Math.min(320, video.videoWidth);
+      const targetH = Math.round((video.videoHeight / video.videoWidth) * targetW);
+      if (inputCanvas.width !== targetW || inputCanvas.height !== targetH) {
+        inputCanvas.width = targetW;
+        inputCanvas.height = targetH;
+      }
+      inputCtx?.drawImage(video, 0, 0, targetW, targetH);
+
       let gesture: string | null = null;
       let heartCheckResult: TwoHandHeartResult = {
         match: false,
@@ -382,12 +415,57 @@ export function useGestureReactions({
         },
       };
 
-      // 1. Check face strictly for deliberate lip kiss / pucker only (speech-proof & movement-proof)
-      if (faceLandmarker) {
+      let skipFace = false;
+
+      // 1. Check hands FIRST for two_hand_heart (priority) or single hand gestures
+      if (handLandmarker) {
+        if (now <= lastHandTime) now = lastHandTime + 1;
+        lastHandTime = now;
+        const handStart = performance.now();
+        const handResult = safeVisionDetect(() => handLandmarker.detectForVideo(inputCanvas, now));
+        timings.handMs = performance.now() - handStart;
+        const allHands: Landmark[][] = handResult?.landmarks || [];
+
+        if (allHands.length === 2) {
+          heartCheckResult = isTwoHandHeart(allHands);
+          if (heartCheckResult.match) {
+            gesture = "two_hand_heart";
+            lastHeartSeen = Date.now();
+            if (poseStartTime === 0) poseStartTime = performance.now();
+          } else {
+            poseStartTime = 0;
+          }
+          // When 2 hands are detected near heart thresholds, skip face inference completely
+          skipFace = true;
+        } else {
+          poseStartTime = 0;
+          heartCheckResult = {
+            match: false,
+            metrics: {
+              detectedHands: allHands.length,
+              handScale: allHands[0] ? distance(allHands[0][0], allHands[0][9]) : 0,
+              thumbDistanceRatio: 0,
+              indexDistanceRatio: 0,
+              verticalOffsetRatio: 0,
+              midpointDeltaXRatio: 0,
+              wristVsIndexRatio: 0,
+              withinBounds: false,
+            },
+          };
+        }
+
+        // If two-hand heart not active, check single hand gestures on the first hand
+        if (!gesture && allHands.length > 0) {
+          gesture = readGesture(allHands[0]);
+        }
+      }
+
+      // 2. Check face strictly for deliberate lip kiss / pucker only (if face inference not bypassed)
+      if (!gesture && !skipFace && faceLandmarker) {
         if (now <= lastFaceTime) now = lastFaceTime + 1;
         lastFaceTime = now;
         const faceStart = performance.now();
-        const faceResult = safeVisionDetect(() => faceLandmarker.detectForVideo(video, now));
+        const faceResult = safeVisionDetect(() => faceLandmarker.detectForVideo(inputCanvas, now));
         timings.faceMs = performance.now() - faceStart;
         const blendshapes = faceResult?.faceBlendshapes?.[0]?.categories;
         const landmarks = faceResult?.faceLandmarks?.[0];
@@ -438,47 +516,6 @@ export function useGestureReactions({
         }
       }
 
-      // 2. Check hands for two_hand_heart (priority) or single hand gestures
-      if (!gesture && handLandmarker) {
-        if (now <= lastHandTime) now = lastHandTime + 1;
-        lastHandTime = now;
-        const handStart = performance.now();
-        const handResult = safeVisionDetect(() => handLandmarker.detectForVideo(video, now));
-        timings.handMs = performance.now() - handStart;
-        const allHands: Landmark[][] = handResult?.landmarks || [];
-
-        if (allHands.length === 2) {
-          heartCheckResult = isTwoHandHeart(allHands);
-          if (heartCheckResult.match) {
-            gesture = "two_hand_heart";
-            lastHeartSeen = Date.now();
-            if (poseStartTime === 0) poseStartTime = performance.now();
-          } else {
-            poseStartTime = 0;
-          }
-        } else {
-          poseStartTime = 0;
-          heartCheckResult = {
-            match: false,
-            metrics: {
-              detectedHands: allHands.length,
-              handScale: allHands[0] ? distance(allHands[0][0], allHands[0][9]) : 0,
-              thumbDistanceRatio: 0,
-              indexDistanceRatio: 0,
-              verticalOffsetRatio: 0,
-              midpointDeltaXRatio: 0,
-              wristVsIndexRatio: 0,
-              withinBounds: false,
-            },
-          };
-        }
-
-        // If two-hand heart not active, check single hand gestures on the first hand
-        if (!gesture && allHands.length > 0) {
-          gesture = readGesture(allHands[0]);
-        }
-      }
-
       timings.loopMs = performance.now() - loopStart;
 
       if (debugContent && !isCollapsed) {
@@ -492,18 +529,18 @@ export function useGestureReactions({
         }
       }
 
-      // Append to sliding window history
+      // Append to sliding window history (fast 3 of 4 frames)
       history.push(gesture);
       if (history.length > WINDOW_SIZE) history.shift();
 
-      // Check if gesture reached REQUIRED_MATCHES (5 out of 7 frames)
+      // Check if gesture reached REQUIRED_MATCHES (3 out of 4 frames)
       const GESTURES = ["two_hand_heart", "peace", "kiss", "thumbs_up", "thumbs_down"];
       for (const g of GESTURES) {
         const matches = history.filter((item) => item === g).length;
         if (matches >= REQUIRED_MATCHES) {
           if (g === "two_hand_heart") {
             const nowMs = Date.now();
-            if (nowMs - lastHeartFired >= COOLDOWN && hasSeparatedAfterHeart) {
+            if (nowMs - lastHeartFired >= HEART_COOLDOWN && hasSeparatedAfterHeart) {
               lastHeartFired = nowMs;
               hasSeparatedAfterHeart = false;
               lastHeartSeen = nowMs;
@@ -516,7 +553,7 @@ export function useGestureReactions({
             }
           } else {
             const nowMs = Date.now();
-            if (nowMs - lastFired >= COOLDOWN) {
+            if (nowMs - lastFired >= GESTURE_COOLDOWN) {
               lastFired = nowMs;
               history.length = 0;
               if (g === "peace") onPeace();
@@ -530,6 +567,28 @@ export function useGestureReactions({
       }
     };
 
+    const runLoop = () => {
+      if (isDetecting || stopped) return;
+      isDetecting = true;
+      try {
+        detect();
+      } finally {
+        isDetecting = false;
+      }
+    };
+
+    const scheduleNext = () => {
+      if (stopped) return;
+      if ("requestVideoFrameCallback" in video) {
+        rVfcId = (video as any).requestVideoFrameCallback(() => {
+          if (!stopped) {
+            runLoop();
+            scheduleNext();
+          }
+        });
+      }
+    };
+
     Promise.allSettled([loadHandLandmarker(), loadFaceLandmarker()])
       .then(([handRes, faceRes]) => {
         if (stopped) return;
@@ -538,7 +597,11 @@ export function useGestureReactions({
 
         if (handLandmarker || faceLandmarker) {
           onStatus?.("ready");
-          timer = setInterval(detect, DETECT_INTERVAL);
+          if ("requestVideoFrameCallback" in video) {
+            scheduleNext();
+          } else {
+            timer = setInterval(runLoop, DETECT_INTERVAL);
+          }
         } else {
           onStatus?.("unavailable");
         }
@@ -550,6 +613,10 @@ export function useGestureReactions({
     return () => {
       stopped = true;
       if (timer) clearInterval(timer);
+      if (rVfcId !== null && "cancelVideoFrameCallback" in video) {
+        (video as any).cancelVideoFrameCallback(rVfcId);
+        rVfcId = null;
+      }
       if (debugWrap && debugWrap.parentNode) {
         debugWrap.parentNode.removeChild(debugWrap);
       }
