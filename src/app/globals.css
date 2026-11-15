@@ -7773,32 +7773,58 @@ button {
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    padding: 0 8px 0 0 !important;
+    padding: max(6px, env(safe-area-inset-top, 6px)) 8px max(6px, env(safe-area-inset-bottom, 6px)) 0 !important;
     z-index: 40 !important;
+    box-sizing: border-box !important;
   }
 
-  .dock {
+  .call-controls {
+    height: auto !important;
+    max-height: 100% !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    gap: 8px !important;
-    padding: 8px 6px !important;
+    justify-content: center !important;
+  }
+
+  .dock {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 16px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    padding: 6px 5px !important;
     border-radius: 20px !important;
-    background: rgba(18, 7, 16, 0.88) !important;
+    background: rgba(18, 7, 16, 0.92) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  .dock::-webkit-scrollbar {
+    display: none !important;
   }
 
   .dock-group {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 4px !important;
+    flex-shrink: 0 !important;
   }
 
   .dock-divider {
-    width: 28px !important;
+    width: 24px !important;
     height: 1px !important;
-    margin: 2px 0 !important;
+    margin: 1px 0 !important;
     background: rgba(255, 255, 255, 0.12) !important;
+    flex-shrink: 0 !important;
   }
 
   .ctrl-label {
@@ -7806,27 +7832,43 @@ button {
   }
 
   .ctrl {
-    width: 44px !important;
-    height: 44px !important;
-    min-width: 44px !important;
-    min-height: 44px !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
     padding: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    flex-shrink: 0 !important;
   }
 
   .ctrl-slot {
-    width: 44px !important;
-    height: 44px !important;
+    width: 38px !important;
+    height: 38px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
   }
 
   .ctrl-orb {
-    width: 40px !important;
-    height: 40px !important;
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  .ctrl-orb svg {
+    width: 17px !important;
+    height: 17px !important;
+  }
+
+  .ctrl.end .ctrl-orb {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .ctrl.end .ctrl-orb svg {
+    width: 18px !important;
+    height: 18px !important;
   }
 
   /* Sub-360px height: Move Doodle and React into 'More' popover */
@@ -7836,6 +7878,44 @@ button {
 
   .ctrl-mobile-more {
     display: flex !important;
+  }
+
+  .dock-more-popover {
+    bottom: 0 !important;
+    left: calc(100% + 10px) !important;
+    right: auto !important;
+    max-height: calc(100dvh - 20px) !important;
+    overflow-y: auto !important;
+  }
+
+  /* Extra compact for ultra-short landscape screens (< 360px) */
+  @media (max-height: 360px) {
+    .dock {
+      gap: 3px !important;
+      padding: 4px 4px !important;
+    }
+    .dock-group {
+      gap: 3px !important;
+    }
+    .ctrl,
+    .ctrl-slot {
+      width: 34px !important;
+      height: 34px !important;
+      min-width: 34px !important;
+      min-height: 34px !important;
+    }
+    .ctrl-orb {
+      width: 30px !important;
+      height: 30px !important;
+    }
+    .ctrl-orb svg {
+      width: 15px !important;
+      height: 15px !important;
+    }
+    .ctrl.end .ctrl-orb {
+      width: 32px !important;
+      height: 32px !important;
+    }
   }
 
   /* ZONE 2 (CENTER): The Stage */
