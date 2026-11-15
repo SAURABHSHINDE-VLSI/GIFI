@@ -12,7 +12,7 @@ import {
   useTracks,
 } from "@livekit/components-react";
 import type { TrackReference } from "@livekit/components-react";
-import { ConnectionState, Track, LocalVideoTrack } from "livekit-client";
+import { ConnectionState, Track, LocalVideoTrack, RoomEvent } from "livekit-client";
 import CallChat from "./CallChat";
 import CallDock from "./CallDock";
 import CallControls from "./CallControls";
@@ -208,6 +208,33 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
       }
     };
   }, []);
+
+  // Network connection resilience
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [isDisconnected, setIsDisconnected] = useState(false);
+
+  useEffect(() => {
+    if (!room) return;
+    const handleReconnecting = () => setIsReconnecting(true);
+    const handleReconnected = () => {
+      setIsReconnecting(false);
+      setIsDisconnected(false);
+    };
+    const handleDisconnected = () => {
+      setIsReconnecting(false);
+      setIsDisconnected(true);
+    };
+
+    room.on(RoomEvent.Reconnecting, handleReconnecting);
+    room.on(RoomEvent.Reconnected, handleReconnected);
+    room.on(RoomEvent.Disconnected, handleDisconnected);
+
+    return () => {
+      room.off(RoomEvent.Reconnecting, handleReconnecting);
+      room.off(RoomEvent.Reconnected, handleReconnected);
+      room.off(RoomEvent.Disconnected, handleDisconnected);
+    };
+  }, [room]);
 
   // Hearts & Reactions
   const onKissReceived = useCallback(() => {
@@ -647,6 +674,36 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
           </button>
         </div>
       </header>
+
+      {/* Network Resilience Banners */}
+      {(isReconnecting || connection === ConnectionState.Reconnecting) && (
+        <div className="call-network-banner reconnecting" role="status" aria-live="assertive">
+          <span className="network-spinner" />
+          <span>Reconnecting to partner…</span>
+        </div>
+      )}
+
+      {(isDisconnected || connection === ConnectionState.Disconnected) && (
+        <div className="call-network-banner disconnected" role="status" aria-live="assertive">
+          <span>Connection lost</span>
+          <div className="network-banner-actions">
+            <button
+              type="button"
+              className="network-banner-btn primary"
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              className="network-banner-btn secondary"
+              onClick={onLeave}
+            >
+              Leave
+            </button>
+          </div>
+        </div>
+      )}
 
       <main className="call-main-stage">
         {/* Always mounted: its LiveKit data listener must exist on BOTH sides so a

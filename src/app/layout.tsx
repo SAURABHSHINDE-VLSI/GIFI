@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Inter, Playfair_Display } from "next/font/google";
 import Script from "next/script";
+import NetworkStatus from "@/components/NetworkStatus";
 import "./globals.css";
 
 const display = Playfair_Display({
@@ -78,7 +79,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <NetworkStatus />
+        {children}
+      </body>
     </html>
   );
 }
