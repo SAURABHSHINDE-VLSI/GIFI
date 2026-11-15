@@ -239,7 +239,7 @@ export default function CallChat({
               <div className="call-chat-empty-wrap">
                 <span className="call-chat-empty-heart">♥</span>
                 <p className="call-chat-empty">
-                  Whisper your thoughts, or show ✌️ for screenshot, 🫰 for hearts.
+                  Whisper your thoughts, or show ✌️ for screenshot, 🫶 (both hands) for hearts.
                 </p>
               </div>
             )}

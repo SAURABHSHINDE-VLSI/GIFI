@@ -159,7 +159,7 @@ export default function VideoStage({
 
       {showHint && (
         <div className="gesture-hint">
-          ✌️ screenshot · 🫰 hearts
+          ✌️ screenshot · 🫶 hearts
         </div>
       )}
 

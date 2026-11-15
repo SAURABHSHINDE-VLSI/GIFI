@@ -567,7 +567,7 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
       captureMomentScreenshot();
     },
     onHeart: () => {
-      flashGesture("🫰 hearts");
+      flashGesture("🫶 hearts");
       sendHearts();
     },
     onKiss: () => {
