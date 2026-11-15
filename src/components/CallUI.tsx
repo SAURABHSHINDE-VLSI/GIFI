@@ -143,6 +143,7 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
   }, []);
 
   const [doodleActive, setDoodleActive] = useState(false);
+  const [hasRemoteDoodle, setHasRemoteDoodle] = useState(false);
   const [scrapbookOpen, setScrapbookOpen] = useState(false);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [gesturesEnabled, setGesturesEnabled] = useState(false);
@@ -786,7 +787,11 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
           }}
           onWatchSwitch={() => watchOpenPickerRef.current?.()}
           doodleActive={doodleActive}
-          onToggleDoodle={() => setDoodleActive((v) => !v)}
+          hasRemoteDoodle={hasRemoteDoodle}
+          onToggleDoodle={() => {
+            setHasRemoteDoodle(false);
+            setDoodleActive((v) => !v);
+          }}
           emojiPickerOpen={emojiPickerOpen}
           onToggleEmojiPicker={() => setEmojiPickerOpen((v) => !v)}
           onSelectEmoji={(emoji) => {
@@ -823,7 +828,13 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
         onReact={sendEmojiBurst}
       />
 
-      <LoveCanvas room={room} isActive={doodleActive} onClose={() => setDoodleActive(false)} watchActive={watchActive} />
+      <LoveCanvas
+        room={room}
+        isActive={doodleActive}
+        onClose={() => setDoodleActive(false)}
+        watchActive={watchActive}
+        onRemoteStroke={() => setHasRemoteDoodle(true)}
+      />
       <MomentsScrapbook isOpen={scrapbookOpen} onClose={() => setScrapbookOpen(false)} />
       <EffectsSheet
         isOpen={effectsOpen}

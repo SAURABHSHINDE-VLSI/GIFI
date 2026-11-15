@@ -20,6 +20,7 @@ type Props = {
   onWatchRewind?: (seconds: number) => void;
   onWatchSwitch?: () => void;
   doodleActive: boolean;
+  hasRemoteDoodle?: boolean;
   onToggleDoodle: () => void;
   emojiPickerOpen: boolean;
   onToggleEmojiPicker: () => void;
@@ -42,6 +43,7 @@ export default function CallControls({
   watchActive,
   onToggleWatch,
   doodleActive,
+  hasRemoteDoodle = false,
   onToggleDoodle,
   emojiPickerOpen,
   onToggleEmojiPicker,
@@ -173,9 +175,10 @@ export default function CallControls({
             <span className="ctrl-slot">
               <span className="ctrl-orb">
                 <Icon name="pen" size={17} />
+                {hasRemoteDoodle && !doodleActive && <span className="orb-live-dot" />}
               </span>
             </span>
-            <span className="ctrl-label">{doodleActive ? "doodling" : "doodle"}</span>
+            <span className="ctrl-label">{doodleActive ? "doodling" : hasRemoteDoodle ? "drawing" : "doodle"}</span>
           </button>
         </div>
 
@@ -267,7 +270,7 @@ export default function CallControls({
                 <span className="ctrl-orb">
                   <Icon name="more" size={20} />
                 </span>
-                {(doodleActive || gesturesEnabled) && <span className="orb-live-dot" />}
+                {(doodleActive || gesturesEnabled || hasRemoteDoodle) && <span className="orb-live-dot" />}
               </span>
               <span className="ctrl-label">more</span>
             </button>
@@ -323,7 +326,7 @@ export default function CallControls({
                   }}
                 >
                   <Icon name="pen" size={16} />
-                  <span>{doodleActive ? "Close Doodle Canvas" : "Love Canvas (Doodle)"}</span>
+                  <span>{doodleActive ? "Close Doodle Canvas" : hasRemoteDoodle ? "Partner is Drawing (Doodle)" : "Love Canvas (Doodle)"}</span>
                 </button>
 
                 <div className="dock-more-divider" />

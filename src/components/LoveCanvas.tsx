@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { Room } from "livekit-client";
 import { RoomEvent } from "livekit-client";
 import { Icon } from "./Icons";
@@ -10,6 +10,7 @@ type Props = {
   isActive: boolean;
   onClose: () => void;
   watchActive?: boolean;
+  onRemoteStroke?: () => void;
 };
 
 const DOODLE_COLORS = [
@@ -26,8 +27,51 @@ const DOODLE_COLORS = [
   { name: "Pure White", hex: "#ffffff" },
 ];
 
-export default function LoveCanvas({ room, isActive, onClose, watchActive = false }: Props) {
+function renderStroke(
+  ctx: CanvasRenderingContext2D,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  color: string,
+  size: number,
+  width: number,
+  height: number,
+) {
+  ctx.save();
+  if (color === "eraser") {
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.strokeStyle = "rgba(0,0,0,1)";
+    ctx.lineWidth = size;
+    ctx.shadowBlur = 0;
+  } else {
+    ctx.globalCompositeOperation = "source-over";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = size;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = size * 2.5;
+  }
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  ctx.beginPath();
+  ctx.moveTo(x0 * width, y0 * height);
+  ctx.lineTo(x1 * width, y1 * height);
+  ctx.stroke();
+  ctx.restore();
+}
+
+export default function LoveCanvas({
+  room,
+  isActive,
+  onClose,
+  watchActive = false,
+  onRemoteStroke,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const strokesRef = useRef<
+    Array<{ x0: number; y0: number; x1: number; y1: number; color: string; size: number }>
+  >([]);
   const [tool, setTool] = useState<"pen" | "eraser">("pen");
   const [selectedColor, setSelectedColor] = useState(DOODLE_COLORS[0].hex);
   const [penSize, setPenSize] = useState(4);
@@ -37,40 +81,21 @@ export default function LoveCanvas({ room, isActive, onClose, watchActive = fals
 
   const drawLine = useCallback(
     (x0: number, y0: number, x1: number, y1: number, color: string, size: number) => {
+      strokesRef.current.push({ x0, y0, x1, y1, color, size });
+      if (strokesRef.current.length > 5000) {
+        strokesRef.current.shift();
+      }
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-
-      const w = canvas.width;
-      const h = canvas.height;
-
-      ctx.save();
-      if (color === "eraser") {
-        ctx.globalCompositeOperation = "destination-out";
-        ctx.strokeStyle = "rgba(0,0,0,1)";
-        ctx.lineWidth = size;
-        ctx.shadowBlur = 0;
-      } else {
-        ctx.globalCompositeOperation = "source-over";
-        ctx.strokeStyle = color;
-        ctx.lineWidth = size;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = size * 2.5;
-      }
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-
-      ctx.beginPath();
-      ctx.moveTo(x0 * w, y0 * h);
-      ctx.lineTo(x1 * w, y1 * h);
-      ctx.stroke();
-      ctx.restore();
+      renderStroke(ctx, x0, y0, x1, y1, color, size, canvas.width, canvas.height);
     },
     [],
   );
 
   const clearCanvas = useCallback(() => {
+    strokesRef.current = [];
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -110,7 +135,7 @@ export default function LoveCanvas({ room, isActive, onClose, watchActive = fals
     [drawLine, room],
   );
 
-  // Handle Escape key to close doodle
+  // Handle Escape key to close doodle toolbar
   useEffect(() => {
     if (!isActive) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -122,30 +147,38 @@ export default function LoveCanvas({ room, isActive, onClose, watchActive = fals
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isActive, onClose]);
 
-  // Resize canvas to match container dimensions
+  // Resize canvas to match container dimensions and replay strokes on resize
   useEffect(() => {
     const updateSize = () => {
       const canvas = canvasRef.current;
       if (!canvas || !canvas.parentElement) return;
       const rect = canvas.parentElement.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
       if (canvas.width !== rect.width || canvas.height !== rect.height) {
         canvas.width = rect.width;
         canvas.height = rect.height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          for (const s of strokesRef.current) {
+            renderStroke(ctx, s.x0, s.y0, s.x1, s.y1, s.color, s.size, rect.width, rect.height);
+          }
+        }
       }
     };
 
     updateSize();
     window.addEventListener("resize", updateSize);
     return () => window.removeEventListener("resize", updateSize);
-  }, [isActive]);
+  }, []);
 
-  // Listen for remote partner's doodle strokes
+  // Listen for remote partner's doodle strokes and clear events
   useEffect(() => {
     const onData = (payload: Uint8Array) => {
       try {
         const msg = JSON.parse(new TextDecoder().decode(payload));
         if (msg?.t === "doodle_stroke") {
           drawLine(msg.x0, msg.y0, msg.x1, msg.y1, msg.color, msg.size);
+          onRemoteStroke?.();
         } else if (msg?.t === "doodle_clear") {
           clearCanvas();
         }
@@ -158,12 +191,13 @@ export default function LoveCanvas({ room, isActive, onClose, watchActive = fals
     return () => {
       room.off(RoomEvent.DataReceived, onData);
     };
-  }, [room, drawLine, clearCanvas]);
+  }, [room, drawLine, clearCanvas, onRemoteStroke]);
 
   const getPos = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return null;
     let clientX = 0;
     let clientY = 0;
 
@@ -212,10 +246,13 @@ export default function LoveCanvas({ room, isActive, onClose, watchActive = fals
     lastPoint.current = null;
   };
 
-  if (!isActive) return null;
-
   return (
-    <div className="love-canvas-container">
+    <div
+      className="love-canvas-container"
+      style={{
+        pointerEvents: isActive ? "auto" : "none",
+      }}
+    >
       <canvas
         ref={canvasRef}
         className={`love-canvas-el ${
@@ -223,156 +260,164 @@ export default function LoveCanvas({ room, isActive, onClose, watchActive = fals
             ? `eraser-mode eraser-${eraserSize <= 16 ? "sm" : eraserSize <= 32 ? "md" : "lg"}`
             : ""
         }`}
-        onMouseDown={handleStart}
-        onMouseMove={handleMove}
-        onMouseUp={handleEnd}
-        onMouseLeave={handleEnd}
-        onTouchStart={handleStart}
-        onTouchMove={handleMove}
-        onTouchEnd={handleEnd}
+        style={{
+          pointerEvents: isActive ? "auto" : "none",
+        }}
+        onMouseDown={isActive ? handleStart : undefined}
+        onMouseMove={isActive ? handleMove : undefined}
+        onMouseUp={isActive ? handleEnd : undefined}
+        onMouseLeave={isActive ? handleEnd : undefined}
+        onTouchStart={isActive ? handleStart : undefined}
+        onTouchMove={isActive ? handleMove : undefined}
+        onTouchEnd={isActive ? handleEnd : undefined}
       />
 
-      {/* Floating Toolbar */}
-      <div className={`love-canvas-toolbar ${watchActive ? "watch-layout" : ""}`} onClick={(e) => e.stopPropagation()}>
-        {/* Tool Selector: Pen vs Eraser */}
-        <div className="canvas-tools">
-          <button
-            type="button"
-            className={`tool-btn ${tool === "pen" ? "active" : ""}`}
-            onClick={() => setTool("pen")}
-            aria-label="Draw with pen"
-            title="Pen"
-          >
-            <Icon name="pen" size={14} />
-          </button>
-          <button
-            type="button"
-            className={`tool-btn ${tool === "eraser" ? "active" : ""}`}
-            onClick={() => setTool("eraser")}
-            aria-label="Erase doodle"
-            title="Eraser"
-          >
-            <Icon name="eraser" size={14} />
-          </button>
-        </div>
-
-        <div className="canvas-colors">
-          {DOODLE_COLORS.map((c) => (
-            <button
-              key={c.hex}
-              type="button"
-              className={`color-btn ${tool === "pen" && selectedColor.toLowerCase() === c.hex.toLowerCase() ? "active" : ""}`}
-              style={{ backgroundColor: c.hex }}
-              onClick={() => {
-                setSelectedColor(c.hex);
-                setTool("pen");
-              }}
-              title={c.name}
-            />
-          ))}
-
-          {/* Custom color picker */}
-          <label
-            className={`color-picker-btn ${
-              tool === "pen" && !DOODLE_COLORS.some((c) => c.hex.toLowerCase() === selectedColor.toLowerCase())
-                ? "active"
-                : ""
-            }`}
-            title="Custom color wheel"
-            style={{
-              ["--active-color" as string]: selectedColor,
-            }}
-          >
-            <input
-              type="color"
-              className="color-picker-input"
-              value={selectedColor.startsWith("#") ? selectedColor : "#ff2e88"}
-              onChange={(e) => {
-                setSelectedColor(e.target.value);
-                setTool("pen");
-              }}
-              title="Pick any color"
-            />
-            <span className="color-picker-rainbow" />
-          </label>
-        </div>
-
-        <div className="canvas-sizes">
-          {tool === "pen" ? (
-            <>
-              <button
-                type="button"
-                className={`size-btn ${penSize === 3 ? "active" : ""}`}
-                onClick={() => setPenSize(3)}
-                title="Fine pen (3px)"
-              >
-                <span style={{ width: 4, height: 4 }} />
-              </button>
-              <button
-                type="button"
-                className={`size-btn ${penSize === 6 ? "active" : ""}`}
-                onClick={() => setPenSize(6)}
-                title="Medium glow pen (6px)"
-              >
-                <span style={{ width: 8, height: 8 }} />
-              </button>
-              <button
-                type="button"
-                className={`size-btn ${penSize === 10 ? "active" : ""}`}
-                onClick={() => setPenSize(10)}
-                title="Bold neon pen (10px)"
-              >
-                <span style={{ width: 12, height: 12 }} />
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                className={`size-btn eraser-size ${eraserSize === 14 ? "active" : ""}`}
-                onClick={() => setEraserSize(14)}
-                title="Precision eraser (14px)"
-              >
-                <span style={{ width: 6, height: 6 }} />
-              </button>
-              <button
-                type="button"
-                className={`size-btn eraser-size ${eraserSize === 28 ? "active" : ""}`}
-                onClick={() => setEraserSize(28)}
-                title="Medium eraser (28px)"
-              >
-                <span style={{ width: 10, height: 10 }} />
-              </button>
-              <button
-                type="button"
-                className={`size-btn eraser-size ${eraserSize === 56 ? "active" : ""}`}
-                onClick={() => setEraserSize(56)}
-                title="Large eraser (56px)"
-              >
-                <span style={{ width: 15, height: 15 }} />
-              </button>
-            </>
-          )}
-        </div>
-
-        <div className="canvas-actions">
-          <button type="button" className="canvas-action-btn" onClick={sendClear} title="Clear board">
-            Clear
-          </button>
-          {onClose && (
+      {/* Floating Toolbar: only visible when local user has doodleActive */}
+      {isActive && (
+        <div
+          className={`love-canvas-toolbar ${watchActive ? "watch-layout" : ""}`}
+          style={{ pointerEvents: "auto" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Tool Selector: Pen vs Eraser */}
+          <div className="canvas-tools">
             <button
               type="button"
-              className="canvas-action-btn close"
-              onClick={onClose}
-              title="Close Doodle"
-              aria-label="Close Doodle"
+              className={`tool-btn ${tool === "pen" ? "active" : ""}`}
+              onClick={() => setTool("pen")}
+              aria-label="Draw with pen"
+              title="Pen"
             >
-              ✕
+              <Icon name="pen" size={14} />
             </button>
-          )}
+            <button
+              type="button"
+              className={`tool-btn ${tool === "eraser" ? "active" : ""}`}
+              onClick={() => setTool("eraser")}
+              aria-label="Erase doodle"
+              title="Eraser"
+            >
+              <Icon name="eraser" size={14} />
+            </button>
+          </div>
+
+          <div className="canvas-colors">
+            {DOODLE_COLORS.map((c) => (
+              <button
+                key={c.hex}
+                type="button"
+                className={`color-btn ${tool === "pen" && selectedColor.toLowerCase() === c.hex.toLowerCase() ? "active" : ""}`}
+                style={{ backgroundColor: c.hex }}
+                onClick={() => {
+                  setSelectedColor(c.hex);
+                  setTool("pen");
+                }}
+                title={c.name}
+              />
+            ))}
+
+            {/* Custom color picker */}
+            <label
+              className={`color-picker-btn ${
+                tool === "pen" && !DOODLE_COLORS.some((c) => c.hex.toLowerCase() === selectedColor.toLowerCase())
+                  ? "active"
+                  : ""
+              }`}
+              title="Custom color wheel"
+              style={{
+                ["--active-color" as string]: selectedColor,
+              }}
+            >
+              <input
+                type="color"
+                className="color-picker-input"
+                value={selectedColor.startsWith("#") ? selectedColor : "#ff2e88"}
+                onChange={(e) => {
+                  setSelectedColor(e.target.value);
+                  setTool("pen");
+                }}
+                title="Pick any color"
+              />
+              <span className="color-picker-rainbow" />
+            </label>
+          </div>
+
+          <div className="canvas-sizes">
+            {tool === "pen" ? (
+              <>
+                <button
+                  type="button"
+                  className={`size-btn ${penSize === 3 ? "active" : ""}`}
+                  onClick={() => setPenSize(3)}
+                  title="Fine pen (3px)"
+                >
+                  <span style={{ width: 4, height: 4 }} />
+                </button>
+                <button
+                  type="button"
+                  className={`size-btn ${penSize === 6 ? "active" : ""}`}
+                  onClick={() => setPenSize(6)}
+                  title="Medium glow pen (6px)"
+                >
+                  <span style={{ width: 8, height: 8 }} />
+                </button>
+                <button
+                  type="button"
+                  className={`size-btn ${penSize === 10 ? "active" : ""}`}
+                  onClick={() => setPenSize(10)}
+                  title="Bold neon pen (10px)"
+                >
+                  <span style={{ width: 12, height: 12 }} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className={`size-btn eraser-size ${eraserSize === 14 ? "active" : ""}`}
+                  onClick={() => setEraserSize(14)}
+                  title="Precision eraser (14px)"
+                >
+                  <span style={{ width: 6, height: 6 }} />
+                </button>
+                <button
+                  type="button"
+                  className={`size-btn eraser-size ${eraserSize === 28 ? "active" : ""}`}
+                  onClick={() => setEraserSize(28)}
+                  title="Medium eraser (28px)"
+                >
+                  <span style={{ width: 10, height: 10 }} />
+                </button>
+                <button
+                  type="button"
+                  className={`size-btn eraser-size ${eraserSize === 56 ? "active" : ""}`}
+                  onClick={() => setEraserSize(56)}
+                  title="Large eraser (56px)"
+                >
+                  <span style={{ width: 15, height: 15 }} />
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="canvas-actions">
+            <button type="button" className="canvas-action-btn" onClick={sendClear} title="Clear board">
+              Clear
+            </button>
+            {onClose && (
+              <button
+                type="button"
+                className="canvas-action-btn close"
+                onClick={onClose}
+                title="Close Doodle"
+                aria-label="Close Doodle"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
-
