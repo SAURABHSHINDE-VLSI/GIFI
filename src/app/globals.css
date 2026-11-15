@@ -3476,14 +3476,6 @@ button {
     box-sizing: border-box !important;
   }
 
-  /* Short phones (< 720px tall): 1.3fr for media row, 1fr each for camera tiles */
-  @media (max-height: 719px) {
-    .stage-with-faces-inner,
-    .stage-with-faces.watch-together-stage .stage-with-faces-inner {
-      grid-template-rows: 1.3fr 1fr 1fr !important;
-    }
-  }
-
   /* Flatten .face-tiles so its 2 children become direct rows 2 and 3 in the grid */
   .face-tiles,
   .stage-with-faces .face-tiles,
@@ -3585,6 +3577,22 @@ button {
   }
 
   /* ROWS 2 & 3: CAMERA TILES (Partner & Self) */
+  .watch-card-container,
+  .stage-with-faces.watch-together-stage .watch-card-container,
+  .stage-video-wrap {
+    grid-row: 1 !important;
+  }
+
+  .face-tile:not(.face-tile-self),
+  .stage-with-faces .face-tile:not(.face-tile-self) {
+    grid-row: 2 !important;
+  }
+
+  .face-tile.face-tile-self,
+  .stage-with-faces .face-tile.face-tile-self {
+    grid-row: 3 !important;
+  }
+
   .face-tile,
   .stage-with-faces .face-tile,
   .stage-with-faces.watch-together-stage .face-tile {
@@ -3613,7 +3621,27 @@ button {
      Row 1 = Partner Camera Tile
      Row 2 = Self Camera Tile
      ------------------------------------------------------------- */
-  .call-stage {
+  /* When screen sharing inside VideoStage, .call-stage acts as a passthrough container */
+  .call-stage.screen-sharing,
+  .call-stage:has(.stage-with-faces) {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    overflow: hidden !important;
+  }
+
+  /* Only when NOT sharing, .call-stage is the 2-row grid */
+  .call-stage.normal-call,
+  .call-stage:not(.screen-sharing):not(:has(.stage-with-faces)) {
     position: relative !important;
     inset: auto !important;
     width: 100% !important;

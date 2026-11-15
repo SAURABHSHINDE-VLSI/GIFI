@@ -57,7 +57,7 @@ export default function VideoStage({
   focusMode,
 }: Props) {
   return (
-    <div className="call-stage" ref={stageRef}>
+    <div className={`call-stage ${screenStage ? "screen-sharing" : "normal-call"}`} ref={stageRef}>
       {stage ? (
         screenStage ? (
           <div className={`stage-with-faces ${chatVisible ? "chat-open" : ""}`}>
