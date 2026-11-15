@@ -3476,6 +3476,14 @@ button {
     box-sizing: border-box !important;
   }
 
+  /* Short phones (< 720px tall): 1.3fr for media row, 1fr each for camera tiles */
+  @media (max-height: 719px) {
+    .stage-with-faces-inner,
+    .stage-with-faces.watch-together-stage .stage-with-faces-inner {
+      grid-template-rows: 1.3fr 1fr 1fr !important;
+    }
+  }
+
   /* Flatten .face-tiles so its 2 children become direct rows 2 and 3 in the grid */
   .face-tiles,
   .stage-with-faces .face-tiles,
@@ -7718,21 +7726,6 @@ button {
   }
 }
 
-@media (max-width: 480px) and (orientation: portrait) {
-  .local-tile {
-    width: 96px !important;
-    height: 128px !important;
-    aspect-ratio: 3 / 4 !important;
-    left: auto !important;
-    right: max(12px, env(safe-area-inset-right, 12px)) !important;
-    bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
-    border-radius: 14px !important;
-  }
-  .local-tile.chat-open {
-    left: max(12px, env(safe-area-inset-left, 12px)) !important;
-    right: auto !important;
-  }
-}
 
 /* ==========================================================================
    PHONE LANDSCAPE MODE: Dedicated 3-Zone Layout
