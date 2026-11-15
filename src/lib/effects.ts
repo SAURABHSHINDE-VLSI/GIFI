@@ -1,48 +1,24 @@
-export type BackgroundMode = "off" | "blur-light" | "blur-strong";
-
 export type EffectsPrefs = {
-  background: BackgroundMode;
   noiseSuppression: boolean;
 };
 
 export const DEFAULT_EFFECTS_PREFS: EffectsPrefs = {
-  background: "off",
   noiseSuppression: true,
 };
 
 export const STORAGE_KEY_EFFECTS = "herz:effects";
-
-export function getBlurRadius(mode: BackgroundMode): number {
-  switch (mode) {
-    case "blur-light":
-      return 10;
-    case "blur-strong":
-      return 20;
-    case "off":
-    default:
-      return 0;
-  }
-}
-
-export function validateBackgroundMode(val: unknown): BackgroundMode {
-  if (val === "off" || val === "blur-light" || val === "blur-strong") {
-    return val;
-  }
-  return DEFAULT_EFFECTS_PREFS.background;
-}
 
 export function validateEffectsPrefs(parsed: unknown): EffectsPrefs {
   if (!parsed || typeof parsed !== "object") {
     return { ...DEFAULT_EFFECTS_PREFS };
   }
   const candidate = parsed as Record<string, unknown>;
-  const background = validateBackgroundMode(candidate.background);
   const noiseSuppression =
     typeof candidate.noiseSuppression === "boolean"
       ? candidate.noiseSuppression
       : DEFAULT_EFFECTS_PREFS.noiseSuppression;
 
-  return { background, noiseSuppression };
+  return { noiseSuppression };
 }
 
 export function loadPrefs(): EffectsPrefs {

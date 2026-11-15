@@ -111,33 +111,17 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## Effects (Blur and Noise Suppression)
+## Call Settings (Noise Suppression)
 
-HERZ provides real-time local camera background blur and microphone noise suppression. Both effects can be configured during the pre-join preview and dynamically toggled during an active call via the in-call Effects dock button.
+HERZ provides browser-native microphone noise suppression and Picture-in-Picture controls. These can be configured during the pre-join preview and dynamically toggled during an active call via the "Call settings" button.
 
-### 1. Camera Background Blur
-- **Local Device Processing**: Segmentation is computed client-side using `@livekit/track-processors` (pinned to `0.8.2`) powered by Google MediaPipe's Selfie Segmentation model via WebAssembly. Video frames never leave your local device for effect processing.
-- **Modes**:
-  - `Off`: Processor is stopped and detached to preserve CPU/GPU resources.
-  - `Light`: Blur radius 10px for subtle background softening.
-  - `Strong`: Blur radius 20px for complete background privacy.
-- **Self-Hosted Assets**:
-  - MediaPipe Tasks Vision WASM files: `/mediapipe/wasm/` (`vision_wasm_internal.wasm`, `vision_wasm_internal.js`, `vision_wasm_nosimd_internal.wasm`, `vision_wasm_nosimd_internal.js`).
-  - Selfie Segmentation TFLite Model: `/models/selfie_segmenter.tflite` (~249 KB).
-  - Assets and models are licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
-- **Browser & Device Support Limits**:
-  - Requires WebAssembly and SIMD support in the browser. Checked at runtime via `supportsBackgroundProcessors()`.
-  - If unsupported, the blur controls gracefully degrade and remain hidden.
-  - Devices with 4 or fewer logical CPU cores (`navigator.hardwareConcurrency <= 4`) display an advisory notice ("May slow older devices.").
-  - When the browser tab is hidden, background processing is paused automatically to conserve battery and CPU.
-
-### 2. Microphone Noise Suppression
+### 1. Microphone Noise Suppression
 - **Browser-Native Audio Processing**: Utilizes standard browser audio constraints (`noiseSuppression: true | false`, `echoCancellation: true`, `autoGainControl: true`) without external paid services or cloud audio processing.
 - **Echo Cancellation**: Permanently enabled to ensure echo-free audio during Watch Together sessions played over device speakers.
 - **Seamless Re-acquisition**: Toggling noise suppression restarts the local microphone track (`audioTrack.restartTrack()`) with the updated constraints while preserving the active mute state without audible clicks or unmuting flashes.
 
-### 3. Preferences Persistence
-- User selections are strictly validated and stored locally in browser storage (`herz:effects` key in `localStorage`), automatically remembered across sessions and reloaded upon joining.
+### 2. Preferences Persistence
+- User selections are strictly validated and stored locally in browser storage (`herz:effects` key in `localStorage`), automatically remembered across sessions and reloaded upon joining. Legacy stored preferences containing a `background` field are safely parsed and ignored.
 
 ---
 

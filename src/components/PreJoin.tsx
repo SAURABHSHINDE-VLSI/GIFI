@@ -6,7 +6,6 @@ import { Icon } from "./Icons";
 import { initialOf } from "@/lib/ui";
 import { useCanFlipCamera } from "@/lib/useCanFlipCamera";
 import { loadPrefs, savePrefs, type EffectsPrefs } from "@/lib/effects";
-import { useBackgroundEffect } from "@/lib/useBackgroundEffect";
 import EffectsControls from "./EffectsControls";
 
 type Props = {
@@ -33,18 +32,6 @@ export default function PreJoin({
 
   const [localVideoTrack, setLocalVideoTrack] = useState<LocalVideoTrack | null>(null);
   const [prefs, setPrefs] = useState<EffectsPrefs>(() => loadPrefs());
-
-  const { supported: blurSupported } = useBackgroundEffect({
-    track: camOn ? localVideoTrack : undefined,
-    mode: prefs.background,
-    onModeChange: (nextMode) => {
-      setPrefs((curr) => {
-        const next = { ...curr, background: nextMode };
-        savePrefs(next);
-        return next;
-      });
-    },
-  });
 
   useEffect(() => {
     if (!camOn) {
@@ -181,7 +168,6 @@ export default function PreJoin({
                   setPrefs(next);
                   savePrefs(next);
                 }}
-                blurSupported={blurSupported}
               />
             </div>
 

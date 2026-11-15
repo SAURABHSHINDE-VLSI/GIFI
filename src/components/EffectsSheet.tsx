@@ -10,7 +10,6 @@ type Props = {
   onClose: () => void;
   prefs: EffectsPrefs;
   onPrefsChange: (prefs: EffectsPrefs) => void;
-  blurSupported: boolean;
   autoPipEnabled?: boolean;
   onToggleAutoPip?: (enabled: boolean) => void;
 };
@@ -20,7 +19,6 @@ export default function EffectsSheet({
   onClose,
   prefs,
   onPrefsChange,
-  blurSupported,
   autoPipEnabled,
   onToggleAutoPip,
 }: Props) {
@@ -54,7 +52,7 @@ export default function EffectsSheet({
         className="effects-sheet"
         role="dialog"
         aria-modal="true"
-        aria-label="Call Audio & Video Effects"
+        aria-label="Call settings"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="effects-sheet-header">
@@ -62,13 +60,13 @@ export default function EffectsSheet({
             <span className="effects-header-icon">
               <Icon name="sliders" size={18} />
             </span>
-            <h2 className="effects-sheet-title">Effects & Audio</h2>
+            <h2 className="effects-sheet-title">Call settings</h2>
           </div>
           <button
             type="button"
             className="effects-close-btn"
             onClick={onClose}
-            aria-label="Close effects menu"
+            aria-label="Close call settings"
           >
             <Icon name="close" size={18} />
           </button>
@@ -78,7 +76,6 @@ export default function EffectsSheet({
           <EffectsControls
             prefs={prefs}
             onPrefsChange={onPrefsChange}
-            blurSupported={blurSupported}
             autoPipEnabled={autoPipEnabled}
             onToggleAutoPip={onToggleAutoPip}
           />

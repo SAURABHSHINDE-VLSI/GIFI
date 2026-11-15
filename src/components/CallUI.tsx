@@ -34,7 +34,6 @@ const LoveCanvas = dynamic(() => import("./LoveCanvas"), { ssr: false });
 const MomentsScrapbook = dynamic(() => import("./MomentsScrapbook"), { ssr: false });
 const EffectsSheet = dynamic(() => import("./EffectsSheet"), { ssr: false });
 import { applyNoiseSuppression } from "@/lib/audioEffects";
-import { useBackgroundEffect } from "@/lib/useBackgroundEffect";
 import { Icon } from "./Icons";
 import { formatDuration } from "@/lib/ui";
 import { useCallChat } from "@/lib/callChat";
@@ -304,23 +303,6 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
   }, [micOn, room]);
 
   const cameraOn = Boolean(isCameraEnabled && (!localCamera || !localCamera.isMuted));
-
-  const localVideoTrack = localCam?.publication?.track as LocalVideoTrack | undefined;
-  const { supported: blurSupported } = useBackgroundEffect({
-    track: cameraOn ? localVideoTrack : undefined,
-    mode: prefs.background,
-    onModeChange: (nextMode) => {
-      setPrefs((curr) => {
-        const next = { ...curr, background: nextMode };
-        savePrefs(next);
-        return next;
-      });
-    },
-    onError: (msg) => {
-      setNotice(msg);
-      setTimeout(() => setNotice(null), 3500);
-    },
-  });
 
   const handlePrefsChange = useCallback(
     async (nextPrefs: EffectsPrefs) => {
@@ -832,7 +814,6 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
         onClose={() => setEffectsOpen(false)}
         prefs={prefs}
         onPrefsChange={handlePrefsChange}
-        blurSupported={blurSupported}
         autoPipEnabled={autoPipEnabled}
         onToggleAutoPip={(enabled) => {
           setAutoPipEnabled(enabled);

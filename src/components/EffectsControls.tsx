@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import type { EffectsPrefs } from "@/lib/effects";
 
 type Props = {
   prefs: EffectsPrefs;
   onPrefsChange: (prefs: EffectsPrefs) => void;
-  blurSupported: boolean;
   autoPipEnabled?: boolean;
   onToggleAutoPip?: (enabled: boolean) => void;
 };
@@ -14,74 +12,15 @@ type Props = {
 export default function EffectsControls({
   prefs,
   onPrefsChange,
-  blurSupported,
   autoPipEnabled,
   onToggleAutoPip,
 }: Props) {
-  const [isLowConcurrency, setIsLowConcurrency] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const isTouch = window.matchMedia("(hover: none)").matches;
-      const isLowCore = typeof navigator !== "undefined" && Boolean(navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
-      setIsLowConcurrency(isTouch || isLowCore);
-    }
-  }, []);
-
-  function setBackground(mode: EffectsPrefs["background"]) {
-    onPrefsChange({ ...prefs, background: mode });
-  }
-
   function toggleNoise() {
     onPrefsChange({ ...prefs, noiseSuppression: !prefs.noiseSuppression });
   }
 
   return (
     <div className="effects-content">
-      {blurSupported && (
-        <div className="effects-group">
-          <div className="effects-group-header">
-            <span className="effects-group-title">Background Blur</span>
-            {isLowConcurrency && (
-              <span className="effects-group-hint">May drain battery.</span>
-            )}
-          </div>
-          <div
-            className="effects-segmented"
-            role="group"
-            aria-label="Background blur level"
-          >
-            <button
-              type="button"
-              className={`effects-seg-btn ${prefs.background === "off" ? "active" : ""}`}
-              onClick={() => setBackground("off")}
-              aria-label="Background blur off"
-              aria-pressed={prefs.background === "off"}
-            >
-              Off
-            </button>
-            <button
-              type="button"
-              className={`effects-seg-btn ${prefs.background === "blur-light" ? "active" : ""}`}
-              onClick={() => setBackground("blur-light")}
-              aria-label="Light background blur"
-              aria-pressed={prefs.background === "blur-light"}
-            >
-              Light
-            </button>
-            <button
-              type="button"
-              className={`effects-seg-btn ${prefs.background === "blur-strong" ? "active" : ""}`}
-              onClick={() => setBackground("blur-strong")}
-              aria-label="Strong background blur"
-              aria-pressed={prefs.background === "blur-strong"}
-            >
-              Strong
-            </button>
-          </div>
-        </div>
-      )}
-
       <div className="effects-group">
         <div className="effects-row-between">
           <div className="effects-text-wrap">

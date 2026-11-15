@@ -6912,49 +6912,6 @@ button {
   margin-bottom: 2px;
 }
 
-.effects-segmented {
-  display: flex;
-  align-items: stretch;
-  gap: 6px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid var(--line, rgba(255, 255, 255, 0.1));
-  padding: 4px;
-  border-radius: 12px;
-}
-
-.effects-seg-btn {
-  flex: 1;
-  min-height: 44px;
-  min-width: 44px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--muted, rgba(245, 239, 243, 0.7));
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-
-.effects-seg-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--cream, #f5eff3);
-}
-
-.effects-seg-btn.active {
-  background: rgba(255, 46, 136, 0.22);
-  border-color: rgba(255, 77, 148, 0.5);
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(255, 46, 136, 0.25);
-}
-
-.effects-seg-btn:focus-visible {
-  outline: 2px solid #ff4d94;
-  outline-offset: 2px;
-}
 
 .effects-row-between {
   display: flex;

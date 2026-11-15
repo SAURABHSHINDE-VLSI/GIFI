@@ -101,12 +101,12 @@ export default function VideoStage({
                         e.stopPropagation();
                         onToggleEffects();
                       }}
-                      aria-label="Camera effects"
+                      aria-label="Call settings"
                       aria-expanded={effectsOpen}
-                      title="Camera effects"
+                      title="Call settings"
                     >
                       <span className="tile-effects-icon">
-                        <Icon name="sparkles" size={16} />
+                        <Icon name="sliders" size={16} />
                       </span>
                     </button>
                   )}
@@ -203,12 +203,12 @@ export default function VideoStage({
                 e.stopPropagation();
                 onToggleEffects();
               }}
-              aria-label="Camera effects"
+              aria-label="Call settings"
               aria-expanded={effectsOpen}
-              title="Camera effects"
+              title="Call settings"
             >
               <span className="tile-effects-icon">
-                <Icon name="sparkles" size={16} />
+                <Icon name="sliders" size={16} />
               </span>
             </button>
           )}
