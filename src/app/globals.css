@@ -3530,47 +3530,6 @@ button {
   }
 }
 
-/* Landscape Phone (height < 500px and landscape) */
-@media (max-height: 499px) and (orientation: landscape) {
-  .stage-with-faces.watch-together-stage {
-    padding: 6px 12px calc(48px + env(safe-area-inset-bottom)) 12px;
-  }
-
-  .stage-with-faces.watch-together-stage .stage-with-faces-inner {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) clamp(130px, 22vw, 170px);
-    gap: 8px;
-    height: 100%;
-    align-items: center;
-  }
-
-  .stage-with-faces.watch-together-stage .watch-card-container {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .stage-with-faces.watch-together-stage .watch-card {
-    width: min(100%, calc((100cqh - 48px) * 16 / 9));
-    max-height: 100%;
-  }
-
-  .stage-with-faces.watch-together-stage .face-tiles {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    height: 100%;
-    width: 100%;
-  }
-
-  .stage-with-faces.watch-together-stage .face-tile {
-    flex: 1 1 0;
-    min-height: 0;
-    border-radius: 10px;
-  }
-}
-
 .watch-banner-title {
   display: inline-block;
   max-width: 46vw;
@@ -7594,38 +7553,277 @@ button {
   }
 }
 
-@media (max-height: 500px) and (orientation: landscape) {
-  .call-top {
-    padding-top: max(4px, env(safe-area-inset-top, 4px)) !important;
-    padding-bottom: 4px !important;
+/* ==========================================================================
+   PHONE LANDSCAPE MODE: Dedicated 3-Zone Layout
+   Scope: @media (orientation: landscape) and (max-height: 520px)
+   Zone 1 (LEFT): Vertical icon-only Dock
+   Zone 2 (CENTER): Stage (Watch card or Partner video)
+   Zone 3 (RIGHT): Tile column (Partner + You stacked or You tile)
+   ========================================================================== */
+
+@media (orientation: landscape) and (max-height: 520px) {
+  :root {
+    --transport-h: 48px;
   }
-  .call-brand {
-    font-size: 16px !important;
+
+  /* Safe areas & page container */
+  .call-wrap {
+    display: flex !important;
+    flex-direction: row !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    width: 100% !important;
+    padding-left: max(12px, env(safe-area-inset-left, 12px)) !important;
+    padding-right: max(12px, env(safe-area-inset-right, 12px)) !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
   }
-  .call-meta {
+
+  /* ZONE 1 (LEFT): Vertical Main Dock */
+  .call-dock {
+    order: 1 !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 8px 0 0 !important;
+    z-index: 40 !important;
+  }
+
+  .dock {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 8px 6px !important;
+    border-radius: 20px !important;
+    background: rgba(18, 7, 16, 0.88) !important;
+  }
+
+  .dock-group {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .dock-divider {
+    width: 28px !important;
+    height: 1px !important;
+    margin: 2px 0 !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  .ctrl-label {
     display: none !important;
   }
-  .local-tile {
-    width: 88px !important;
-    height: 66px !important;
-    aspect-ratio: 4 / 3 !important;
-    bottom: 8px !important;
-    right: max(8px, env(safe-area-inset-right, 8px)) !important;
+
+  .ctrl {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
-  .dock {
-    padding: 4px 8px !important;
-    gap: 4px !important;
-  }
+
   .ctrl-slot {
+    width: 44px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .ctrl-orb {
     width: 40px !important;
     height: 40px !important;
   }
-  .ctrl-orb {
-    width: 36px !important;
-    height: 36px !important;
-  }
-  .ctrl-label {
+
+  /* Sub-360px height: Move Doodle and React into 'More' popover */
+  .ctrl-desktop-secondary {
     display: none !important;
+  }
+
+  .ctrl-mobile-more {
+    display: flex !important;
+  }
+
+  /* ZONE 2 (CENTER): The Stage */
+  .call-main-stage {
+    order: 2 !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    position: relative !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* 3. WATCHING IN LANDSCAPE */
+  .stage-with-faces.watch-together-stage {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    padding: 6px 8px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    gap: 8px !important;
+  }
+
+  .stage-with-faces.watch-together-stage .stage-with-faces-inner {
+    display: flex !important;
+    flex-direction: row !important;
+    width: 100% !important;
+    height: 100% !important;
+    gap: 8px !important;
+    align-items: center !important;
+  }
+
+  .stage-with-faces.watch-together-stage .watch-card-container {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    container-type: normal !important;
+  }
+
+  .stage-with-faces.watch-together-stage .watch-card {
+    position: relative !important;
+    width: min(100%, calc((100dvh - 12px - var(--transport-h, 48px)) * 16 / 9)) !important;
+    max-height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+  }
+
+  .stage-with-faces.watch-together-stage .watch-video-frame {
+    position: relative !important;
+    width: 100% !important;
+    aspect-ratio: 16 / 9 !important;
+    overflow: hidden !important;
+  }
+
+  /* ZONE 3 (RIGHT): Stacked Tile Column when watching */
+  .stage-with-faces.watch-together-stage .face-tiles {
+    width: clamp(120px, 20vw, 200px) !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .stage-with-faces.watch-together-stage .face-tile {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    border-radius: 12px !important;
+  }
+
+  /* 5. NOT WATCHING IN LANDSCAPE (VideoStage) */
+  .call-stage {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 6px 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  .call-stage .stage-video {
+    position: relative !important;
+    inset: auto !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 14px !important;
+  }
+
+  .call-stage .local-tile {
+    position: relative !important;
+    inset: auto !important;
+    transform: none !important;
+    width: clamp(120px, 20vw, 200px) !important;
+    height: 100% !important;
+    flex: 0 0 auto !important;
+    border-radius: 12px !important;
+    z-index: 5 !important;
+  }
+
+  .call-stage .stage-empty {
+    position: relative !important;
+    flex: 1 1 0 !important;
+    height: 100% !important;
+  }
+
+  /* 6. TOP OVERLAY */
+  .call-top {
+    position: absolute !important;
+    top: max(4px, env(safe-area-inset-top, 4px)) !important;
+    left: calc(56px + max(12px, env(safe-area-inset-left, 12px))) !important;
+    right: calc(clamp(120px, 20vw, 200px) + max(12px, env(safe-area-inset-right, 12px))) !important;
+    padding: 2px 6px !important;
+    background: transparent !important;
+    z-index: 25 !important;
+    pointer-events: none !important;
+  }
+
+  .call-brand,
+  .call-meta {
+    display: none !important;
+  }
+
+  .call-top-actions {
+    gap: 6px !important;
+  }
+
+  /* 7. CHAT IN LANDSCAPE */
+  .call-chat-box {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    left: auto !important;
+    width: min(360px, 45vw) !important;
+    height: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 16px 0 0 16px !important;
+    border-right: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    z-index: 55 !important;
+  }
+
+  .effects-sheet {
+    max-height: 90dvh !important;
+    overflow-y: auto !important;
+  }
+
+  /* 8. OVERLAYS (hearts stay below dock & sheets) */
+  .burst-layer {
+    z-index: 30 !important;
   }
 }
 
