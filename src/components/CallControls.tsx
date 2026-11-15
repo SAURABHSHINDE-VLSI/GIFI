@@ -274,6 +274,46 @@ export default function CallControls({
 
             {moreOpen && (
               <div className="dock-more-popover" role="dialog" aria-label="More actions">
+                {/* Secondary buttons moved into More popover on ultra-short screens (<340px) */}
+                <div className="dock-more-sub340-group">
+                  {(canShare || sharing) && (
+                    <button
+                      type="button"
+                      className={`dock-more-action-btn ${sharing ? "active" : ""}`}
+                      onClick={() => {
+                        onToggleShare?.();
+                        setMoreOpen(false);
+                      }}
+                    >
+                      <Icon name="screen" size={16} />
+                      <span>{sharing ? "Stop Sharing Screen" : "Share Screen"}</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className={`dock-more-action-btn ${watchActive ? "active" : ""}`}
+                    onClick={() => {
+                      onToggleWatch?.();
+                      setMoreOpen(false);
+                    }}
+                  >
+                    <Icon name="tv" size={16} />
+                    <span>{watchActive ? "Close Watch Together" : "Watch Together"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`dock-more-action-btn ${chatVisible ? "active" : ""}`}
+                    onClick={() => {
+                      onToggleChat?.();
+                      setMoreOpen(false);
+                    }}
+                  >
+                    <Icon name="chat" size={16} />
+                    <span>{chatVisible ? "Close Chat" : "Open Chat"}</span>
+                  </button>
+                  <div className="dock-more-divider" />
+                </div>
+
                 <button
                   type="button"
                   className={`dock-more-action-btn ${doodleActive ? "active" : ""}`}
