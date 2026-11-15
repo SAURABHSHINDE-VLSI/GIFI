@@ -3587,12 +3587,15 @@ button {
     grid-column: 1 !important;
   }
 
+  .face-tiles > .face-tile:first-child,
   .face-tile:not(.face-tile-self),
   .stage-with-faces .face-tile:not(.face-tile-self) {
     grid-row: 2 !important;
     grid-column: 1 !important;
   }
 
+  .face-tiles > .face-tile:nth-child(2),
+  .face-tiles > .face-tile:last-child,
   .face-tile.face-tile-self,
   .stage-with-faces .face-tile.face-tile-self {
     grid-row: 3 !important;

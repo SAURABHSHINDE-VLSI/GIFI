@@ -1133,11 +1133,28 @@ export default function WatchTogether({
             <span className="face-tag">{partnerLabel}</span>
           </div>
 
-          <div className="face-tile">
+          <div className="face-tile face-tile-self">
             {localCam ? (
               <VideoTrack trackRef={localCam} className="face-video mirror" playsInline />
             ) : (
               <div className="face-off">{initialOf(selfName)}</div>
+            )}
+            {onToggleEffects && (
+              <button
+                className={`tile-effects-btn ${effectsOpen ? "open" : ""}`}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleEffects();
+                }}
+                aria-label="Call settings"
+                aria-expanded={effectsOpen}
+                title="Call settings"
+              >
+                <span className="tile-effects-icon">
+                  <Icon name="sliders" size={16} />
+                </span>
+              </button>
             )}
             <span className="face-tag">you</span>
           </div>
