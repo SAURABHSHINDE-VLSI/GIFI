@@ -12,7 +12,7 @@ function getLiveKitOrigins(): string {
       // ignore
     }
   }
-  return `${specificOrigin}https://*.livekit.cloud wss://*.livekit.cloud`.trim();
+  return `${specificOrigin}https://*.livekit.cloud wss://*.livekit.cloud https://*.sslip.io wss://*.sslip.io https://129.225.107.71.sslip.io wss://129.225.107.71.sslip.io`.trim();
 }
 
 const livekitOrigins = getLiveKitOrigins();
