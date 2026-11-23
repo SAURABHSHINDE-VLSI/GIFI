@@ -3,14 +3,16 @@ import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 function getLiveKitOrigins(): string {
   const url = process.env.LIVEKIT_URL;
-  if (!url) return "wss: https:";
-  try {
-    const parsed = new URL(url.replace(/^wss:\/\//, "https://").replace(/^ws:\/\//, "http://"));
-    const host = parsed.host;
-    return `https://${host} wss://${host}`;
-  } catch {
-    return "wss: https:";
+  let specificOrigin = "";
+  if (url) {
+    try {
+      const parsed = new URL(url.replace(/^wss:\/\//, "https://").replace(/^ws:\/\//, "http://"));
+      specificOrigin = `https://${parsed.host} wss://${parsed.host} `;
+    } catch {
+      // ignore
+    }
   }
+  return `${specificOrigin}https://*.livekit.cloud wss://*.livekit.cloud`.trim();
 }
 
 const livekitOrigins = getLiveKitOrigins();
