@@ -5,6 +5,11 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "LIVEKIT_API_KEY": "APIgifiserver",
+    "LIVEKIT_API_SECRET": "gifi_live_sec_7a9f8b2c4e1d3056a29d84ef3381a",
+    "LIVEKIT_URL": "wss://129.225.107.71.sslip.io"
+  },
   "d1_databases": [
     {
       "binding": "DB",

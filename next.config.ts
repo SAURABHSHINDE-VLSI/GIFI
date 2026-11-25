@@ -22,8 +22,7 @@ const livekitOrigins = getLiveKitOrigins();
 const mediapipeScriptOrigins = "https://cdn.jsdelivr.net";
 const mediapipeConnectOrigins = "https://cdn.jsdelivr.net https://storage.googleapis.com";
 
-const isDev = process.env.NODE_ENV === "development";
-const scriptSrc = `script-src 'self' ${mediapipeScriptOrigins} https://open.spotify.com 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ""}`;
+const scriptSrc = `script-src 'self' ${mediapipeScriptOrigins} https://open.spotify.com 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'`;
 
 const cspHeader = [
   "default-src 'self'",

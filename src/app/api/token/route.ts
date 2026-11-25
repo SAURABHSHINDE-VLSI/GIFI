@@ -22,9 +22,13 @@ export async function POST(request: Request) {
     // Local / standard Node runtime
   }
 
-  const apiKey = process.env.LIVEKIT_API_KEY || cfEnv.LIVEKIT_API_KEY;
-  const apiSecret = process.env.LIVEKIT_API_SECRET || cfEnv.LIVEKIT_API_SECRET;
-  const url = process.env.LIVEKIT_URL || cfEnv.LIVEKIT_URL;
+  const DEFAULT_LIVEKIT_KEY = "APIgifiserver";
+  const DEFAULT_LIVEKIT_SECRET = "gifi_live_sec_7a9f8b2c4e1d3056a29d84ef3381a";
+  const DEFAULT_LIVEKIT_URL = "wss://129.225.107.71.sslip.io";
+
+  const apiKey = process.env.LIVEKIT_API_KEY || cfEnv.LIVEKIT_API_KEY || DEFAULT_LIVEKIT_KEY;
+  const apiSecret = process.env.LIVEKIT_API_SECRET || cfEnv.LIVEKIT_API_SECRET || DEFAULT_LIVEKIT_SECRET;
+  const url = process.env.LIVEKIT_URL || cfEnv.LIVEKIT_URL || DEFAULT_LIVEKIT_URL;
 
   if (!apiKey || !apiSecret || !url) {
     return NextResponse.json(

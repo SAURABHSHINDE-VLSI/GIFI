@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { Track } from "livekit-client";
 import {
   isTwoHandHeart,
@@ -199,7 +199,11 @@ function readGesture(hand?: Landmark[]) {
     return "peace";
   }
 
-  // Note: single-hand finger heart was removed per Step 4. Heart reaction now requires two_hand_heart.
+  // 🫰 Finger heart: thumb and index tips crossed/pinched close together, other 3 fingers folded
+  const otherThreeFolded = !middleUp && !ringUp && !pinkyUp;
+  if (otherThreeFolded && distance(thumbTip, indexTip) < 0.08) {
+    return "finger_heart";
+  }
 
   // 👍 Thumbs up: all 4 fingers folded, thumb pointing UP above wrist
   const otherFingersFolded = !indexUp && !middleUp && !ringUp && !pinkyUp;
@@ -273,9 +277,29 @@ export function useGestureReactions({
   onThumbsDown,
   onStatus,
 }: Options) {
+  const callbacksRef = useRef({
+    onPeace,
+    onHeart,
+    onKiss,
+    onThumbsUp,
+    onThumbsDown,
+    onStatus,
+  });
+
+  useEffect(() => {
+    callbacksRef.current = {
+      onPeace,
+      onHeart,
+      onKiss,
+      onThumbsUp,
+      onThumbsDown,
+      onStatus,
+    };
+  });
+
   useEffect(() => {
     if (!enabled || !track || track.isMuted || track.mediaStreamTrack?.readyState === "ended") {
-      onStatus?.("idle");
+      callbacksRef.current.onStatus?.("idle");
       return;
     }
 
@@ -342,9 +366,25 @@ export function useGestureReactions({
     }
 
     const video = document.createElement("video");
+    video.autoplay = true;
     video.playsInline = true;
     video.muted = true;
-    video.srcObject = new MediaStream([track.mediaStreamTrack]);
+    video.style.position = "fixed";
+    video.style.top = "-9999px";
+    video.style.left = "-9999px";
+    video.style.width = "1px";
+    video.style.height = "1px";
+    video.style.opacity = "0";
+    video.style.pointerEvents = "none";
+    if (typeof document !== "undefined") {
+      document.body.appendChild(video);
+    }
+
+    if (typeof (track as any).attach === "function") {
+      (track as any).attach(video);
+    } else if (track.mediaStreamTrack) {
+      video.srcObject = new MediaStream([track.mediaStreamTrack]);
+    }
     video.play().catch(() => undefined);
 
     // Dedicated reused 320px canvas to avoid texture upload overhead on high-res camera feeds
@@ -362,16 +402,22 @@ export function useGestureReactions({
         rVfcId = null;
       }
       try {
+        if (typeof (track as any).detach === "function") {
+          (track as any).detach(video);
+        }
         video.pause();
         video.srcObject = null;
+        if (video.parentNode) {
+          video.parentNode.removeChild(video);
+        }
       } catch {
         // ignore
       }
-      onStatus?.("idle");
+      callbacksRef.current.onStatus?.("idle");
     };
     track.mediaStreamTrack?.addEventListener("ended", onTrackEnded);
 
-    onStatus?.("loading");
+    callbacksRef.current.onStatus?.("loading");
 
     const detect = () => {
       if (
@@ -379,15 +425,12 @@ export function useGestureReactions({
         (typeof document !== "undefined" && document.hidden) ||
         (!handLandmarker && !faceLandmarker) ||
         video.readyState < 2 ||
-        video.paused ||
         video.videoWidth === 0 ||
-        video.videoHeight === 0 ||
-        video.currentTime === lastFrame
+        video.videoHeight === 0
       ) {
         return;
       }
 
-      lastFrame = video.currentTime;
       const loopStart = performance.now();
       let now = loopStart;
 
@@ -534,13 +577,13 @@ export function useGestureReactions({
       if (history.length > WINDOW_SIZE) history.shift();
 
       // Check if gesture reached REQUIRED_MATCHES (3 out of 4 frames)
-      const GESTURES = ["two_hand_heart", "peace", "kiss", "thumbs_up", "thumbs_down"];
+      const GESTURES = ["two_hand_heart", "finger_heart", "peace", "kiss", "thumbs_up", "thumbs_down"];
       for (const g of GESTURES) {
         const matches = history.filter((item) => item === g).length;
         if (matches >= REQUIRED_MATCHES) {
-          if (g === "two_hand_heart") {
+          if (g === "two_hand_heart" || g === "finger_heart") {
             const nowMs = Date.now();
-            if (nowMs - lastHeartFired >= HEART_COOLDOWN && hasSeparatedAfterHeart) {
+            if (nowMs - lastHeartFired >= HEART_COOLDOWN && (g === "finger_heart" || hasSeparatedAfterHeart)) {
               lastHeartFired = nowMs;
               hasSeparatedAfterHeart = false;
               lastHeartSeen = nowMs;
@@ -548,7 +591,7 @@ export function useGestureReactions({
               if (poseStartTime > 0) {
                 timings.poseToTriggerMs = Math.round(performance.now() - poseStartTime);
               }
-              onHeart();
+              callbacksRef.current.onHeart();
               break;
             }
           } else {
@@ -556,10 +599,10 @@ export function useGestureReactions({
             if (nowMs - lastFired >= GESTURE_COOLDOWN) {
               lastFired = nowMs;
               history.length = 0;
-              if (g === "peace") onPeace();
-              else if (g === "kiss") onKiss?.();
-              else if (g === "thumbs_up") onThumbsUp?.();
-              else if (g === "thumbs_down") onThumbsDown?.();
+              if (g === "peace") callbacksRef.current.onPeace();
+              else if (g === "kiss") callbacksRef.current.onKiss?.();
+              else if (g === "thumbs_up") callbacksRef.current.onThumbsUp?.();
+              else if (g === "thumbs_down") callbacksRef.current.onThumbsDown?.();
               break;
             }
           }
@@ -596,18 +639,17 @@ export function useGestureReactions({
         if (faceRes.status === "fulfilled") faceLandmarker = faceRes.value;
 
         if (handLandmarker || faceLandmarker) {
-          onStatus?.("ready");
+          callbacksRef.current.onStatus?.("ready");
           if ("requestVideoFrameCallback" in video) {
             scheduleNext();
-          } else {
-            timer = setInterval(runLoop, DETECT_INTERVAL);
           }
+          timer = setInterval(runLoop, DETECT_INTERVAL);
         } else {
-          onStatus?.("unavailable");
+          callbacksRef.current.onStatus?.("unavailable");
         }
       })
       .catch(() => {
-        if (!stopped) onStatus?.("unavailable");
+        if (!stopped) callbacksRef.current.onStatus?.("unavailable");
       });
 
     return () => {
@@ -622,11 +664,17 @@ export function useGestureReactions({
       }
       track.mediaStreamTrack?.removeEventListener("ended", onTrackEnded);
       try {
+        if (typeof (track as any).detach === "function") {
+          (track as any).detach(video);
+        }
         video.pause();
         video.srcObject = null;
+        if (video.parentNode) {
+          video.parentNode.removeChild(video);
+        }
       } catch {
         // ignore
       }
     };
-  }, [track, enabled, onPeace, onHeart, onKiss, onThumbsUp, onThumbsDown, onStatus]);
+  }, [track, enabled]);
 }

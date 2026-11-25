@@ -146,7 +146,15 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
   const [hasRemoteDoodle, setHasRemoteDoodle] = useState(false);
   const [scrapbookOpen, setScrapbookOpen] = useState(false);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
-  const [gesturesEnabled, setGesturesEnabled] = useState(false);
+  const [gesturesEnabled, setGesturesEnabled] = useState(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      const saved = localStorage.getItem("herz:gestures");
+      return saved === null ? true : saved === "1";
+    } catch {
+      return true;
+    }
+  });
   const [callSoundMuted, setCallSoundMuted] = useState(false);
   const [focusMode, setFocusMode] = useState<"partner" | "self">("partner");
   const [effectsOpen, setEffectsOpen] = useState(false);
@@ -802,6 +810,11 @@ export default function CallUI({ selfName, partnerName, onLeave }: Props) {
           onToggleGestures={() => {
             const next = !gesturesEnabled;
             setGesturesEnabled(next);
+            try {
+              localStorage.setItem("herz:gestures", next ? "1" : "0");
+            } catch {
+              // ignore
+            }
             setNotice(next ? "✋ Hand gestures ON" : "Hand gestures OFF");
             setTimeout(() => setNotice(null), 2500);
           }}
